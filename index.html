@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CRAB Combination PK/PD Simulator: colistin, meropenem, ampicillin/sulbactam</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3f4f6;--panel:#ffffff;--text:#222326;--muted:#5d6572;--border:#d8dce2;--soft:#f6f7f9;--hdr:#9e1906;--hdrText:#ffffff;--bar:#9e1906;--barText:#ffffff;--hero:#9e1906;--topbg:#ffffff;--link:#0272b1;
+--accent:#9e1906;--accentText:#ffffff;--ok:#16723f;--okbg:#e0f3e8;--warn:#8e5a00;--warnbg:#fff1cf;--bad:#b3261e;--badbg:#fde7e4;
+--cMero:#0272b1;--cSul:#e46d12;--cCol:#14907a;--thr:#9e1906;--band:rgba(2,114,177,.16);--grid:#e4e7ec;--input:#ffffff;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121214;--panel:#1c1c1f;--text:#ececef;--muted:#a3a8b1;--border:#36393f;--soft:#242529;--hdr:#ff9a85;--hdrText:#ffffff;--bar:#7a1204;--barText:#ffffff;--hero:#7a1204;--topbg:#1c1c1f;--link:#5db6ea;
+--accent:#c43a22;--accentText:#ffffff;--ok:#7fe0a8;--okbg:#14382a;--warn:#f2c56b;--warnbg:#3a2f12;--bad:#ff9b90;--badbg:#44201c;
+--cMero:#5db6ea;--cSul:#f6a15c;--cCol:#4fd1b0;--thr:#ff8a7a;--band:rgba(93,182,234,.2);--grid:#2c2f36;--input:#141416;}}
+:root[data-theme="dark"]{--bg:#121214;--panel:#1c1c1f;--text:#ececef;--muted:#a3a8b1;--border:#36393f;--soft:#242529;--hdr:#ff9a85;--hdrText:#ffffff;--bar:#7a1204;--barText:#ffffff;--hero:#7a1204;--topbg:#1c1c1f;--link:#5db6ea;
+--accent:#c43a22;--accentText:#ffffff;--ok:#7fe0a8;--okbg:#14382a;--warn:#f2c56b;--warnbg:#3a2f12;--bad:#ff9b90;--badbg:#44201c;
+--cMero:#5db6ea;--cSul:#f6a15c;--cCol:#4fd1b0;--thr:#ff8a7a;--band:rgba(93,182,234,.2);--grid:#2c2f36;--input:#141416;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:13.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.top{background:var(--bar);color:var(--barText);display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 14px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;margin-right:8px}
+.brand small{display:block;font-weight:400;font-size:11px;opacity:.75}
+.top .sp{flex:1}
+.top select{background:#16355f;color:#fff;border:1px solid #2c4f82;border-radius:6px;padding:6px 8px;font:inherit;max-width:300px}
+.tbtn{font:inherit;color:var(--barText);background:transparent;border:1px solid #2c4f82;border-radius:6px;padding:6px 11px;cursor:pointer}
+.tbtn:hover{background:#16355f}
+.tbtn.run{background:var(--accent);color:var(--accentText);border-color:transparent;font-weight:600}
+.chk{display:flex;align-items:center;gap:6px;font-size:12.5px}
+.wrap{max-width:1500px;margin:0 auto;padding:10px}
+.banner{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid var(--border);border-left-width:6px;border-radius:6px;padding:8px 12px;margin-bottom:10px;background:var(--panel)}
+.banner.ok{border-left-color:var(--ok)}.banner.warn{border-left-color:var(--warn)}.banner.bad{border-left-color:var(--bad)}
+.banner .t{font-weight:700;font-size:15px}.banner .s{color:var(--muted)}
+.banner .ch{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.workspace{display:grid;grid-template-columns:310px minmax(0,1fr) 330px;gap:10px;align-items:start}
+@media(max-width:1200px){.workspace{grid-template-columns:300px minmax(0,1fr)}.right{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:10px}}
+@media(max-width:820px){.workspace{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;margin-bottom:10px;overflow:hidden}
+.ph{background:var(--hdr);color:var(--hdrText);padding:6px 10px;font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pb{padding:10px}
+.ph .tiny{font-weight:400;font-size:11.5px;opacity:.85}
+label{display:block;font-size:12px;color:var(--muted);margin:7px 0 3px}
+select,input[type=number],textarea{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:5px;background:var(--input);color:var(--text);font:inherit}
+select:focus,input:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.hint{font-size:11.5px;color:var(--muted);margin-top:3px}
+button{font:inherit;cursor:pointer;border-radius:5px;border:1px solid var(--border);background:var(--panel);color:var(--text);padding:5px 10px}
+button:hover{background:var(--soft)}
+button.primary{background:var(--accent);color:var(--accentText);border-color:transparent;font-weight:600}
+button.sm{padding:3px 8px;font-size:12px}
+.seg{display:flex;gap:0;border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.seg button{flex:1;border:none;border-radius:0;border-right:1px solid var(--border);padding:6px 4px;font-size:12px}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--accent);color:var(--accentText);font-weight:600}
+.sites{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.sites button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px;font-size:11.5px}
+.sites button.on{background:var(--accent);color:var(--accentText);border-color:transparent}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);background:var(--soft)}
+.tabs button{border:none;border-radius:0;background:transparent;padding:8px 14px;border-bottom:3px solid transparent;font-weight:500}
+.tabs button.on{border-bottom-color:var(--accent);color:var(--accent);font-weight:700}
+.tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:6px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{border-bottom:1px solid var(--border);padding:5px 7px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;background:var(--soft)}
+tr.alt td{background:var(--soft)}
+.kv td:first-child{color:var(--muted);width:46%}
+.scroll{overflow-x:auto}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600}
+.pill.ok{background:var(--okbg);color:var(--ok)}.pill.warn{background:var(--warnbg);color:var(--warn)}.pill.bad{background:var(--badbg);color:var(--bad)}.pill.mut{background:var(--soft);color:var(--muted);border:1px solid var(--border)}
+.bar{height:9px;background:var(--grid);border-radius:5px;overflow:hidden;margin-top:3px}.bar i{display:block;height:100%}
+.bar i.ok{background:var(--ok)}.bar i.warn{background:var(--warn)}.bar i.bad{background:var(--bad)}
+.heat{border-collapse:separate;border-spacing:3px;width:auto}
+.heat td,.heat th{border:none;text-align:center;padding:7px 9px;border-radius:4px;min-width:60px}
+.heat td.ok{background:var(--okbg);color:var(--ok)}.heat td.warn{background:var(--warnbg);color:var(--warn)}.heat td.bad{background:var(--badbg);color:var(--bad)}
+.heat td.ex{background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(120,120,120,.30) 5px 7px)}
+.heat td.cur{outline:2px solid var(--accent)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:6px 0}
+.sw{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.note{font-size:12px;color:var(--muted)}
+.bottom{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:980px){.bottom{grid-template-columns:1fr}}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal .box{background:var(--panel);border:1px solid var(--border);border-radius:8px;max-width:760px;width:100%;max-height:88vh;overflow:auto}
+.modal .bh{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--hdr);color:var(--hdrText);font-weight:600}
+.modal .bb{padding:14px}
+.modal textarea{min-height:200px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+details summary{cursor:pointer;color:var(--accent);font-size:12.5px;margin-top:6px}
+svg text{fill:var(--muted);font-size:11px}
+.spin{opacity:.55;transition:opacity .15s}
+.imgchip{display:inline-flex;align-items:center;justify-content:center;background:#fff;border-radius:8px;padding:3px;border:1px solid var(--border);flex:none}
+.sites img{display:block}
+.imgchip img[src^="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2Ni44OCA1MS44MyI"]{filter:brightness(.72) contrast(1.35)}
+.warnbox{background:var(--warnbg);color:var(--warn);border-radius:6px;padding:7px 12px;margin-bottom:10px;font-size:12.5px}
+.credit{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px}
+footer{margin:6px 0 20px;color:var(--muted);font-size:12px}
+footer p{margin:6px 0}
+.forms{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px}
+.forms button{display:flex;align-items:center;gap:8px;padding:6px 8px;text-align:left;font-size:12px;line-height:1.2}
+.forms button.on{background:var(--accent);color:var(--accentText);border-color:transparent}
+.dl{display:inline-flex;align-items:center;gap:6px}
+.fcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:8px}
+.fcard{border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--panel)}
+.fcard.cur{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.fcard .fh{display:flex;align-items:center;gap:10px;margin-bottom:6px}.fcard .fn{font-weight:700;font-size:13px;margin-bottom:2px}
+.fcard .big{display:flex;align-items:center;gap:8px;margin:4px 0}.fcard .big .pill{font-size:18px;padding:2px 12px}
+.fcard .frow{display:flex;align-items:baseline;gap:6px;margin-top:8px}
+.fcard .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.dchip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;border:1px solid var(--border);border-radius:999px;padding:2px 8px;background:var(--soft)}
+.hdrimgs{display:inline-flex;gap:6px;align-items:center}
+.fchip{display:inline-flex;align-items:center;justify-content:center;background:#fff;border-radius:7px;padding:2px 3px;flex:none}
+
+body{font-family:"Source Sans 3","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;font-size:14px}
+.top{background:var(--topbg);color:var(--text);border-bottom:1px solid var(--border);padding:8px 18px}
+.brand{font-size:15px;color:var(--hdr);letter-spacing:.01em}.brand small{display:none}
+.top select{background:var(--input);color:var(--text);border:1px solid var(--border)}
+.tbtn{color:var(--text);background:var(--panel);border:1px solid var(--border)}.tbtn:hover{background:var(--soft)}
+.tbtn.run{background:var(--link);color:#fff;border-color:transparent}
+.hero{background:var(--hero);color:#fff;padding:0 18px}
+.hero .in{max-width:1500px;margin:0 auto;display:flex;align-items:center;gap:22px;padding:20px 0 22px;flex-wrap:wrap}
+.cover{width:84px;height:108px;background:#fff;border-radius:4px;box-shadow:0 3px 10px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden;flex:none}
+.cvtop{background:linear-gradient(#c22a0e,#7d1405);color:#fff;font-weight:700;font-size:11px;text-align:center;padding:6px 2px;letter-spacing:.1em}
+.cvmid{flex:1;display:flex;align-items:center;justify-content:center}
+.cvbot{display:flex;justify-content:center;gap:4px;padding:0 4px 7px}
+.hero h1{margin:0;font-size:30px;font-weight:600;line-height:1.15;letter-spacing:.005em}
+.hero .sub{margin-top:6px;font-size:14.5px;opacity:.93;max-width:760px}
+.hero .metrics{margin-left:auto;display:flex;align-items:center}
+.hero .metric{padding:2px 22px}.hero .metric+.metric{border-left:1px solid rgba(255,255,255,.5)}
+.hero .metric b{display:block;font-size:24px;font-weight:500;line-height:1.1}.hero .metric span{font-size:13px;opacity:.92}
+.panel{border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.08);border-top:3px solid var(--hdr)}
+.ph{background:var(--panel);color:var(--hdr);border-bottom:1px solid var(--border);padding:8px 12px;font-size:14.5px;font-weight:700}
+.ph .tiny{color:var(--muted);opacity:1}
+.modal .bh{background:var(--hero);color:#fff}
+.banner{border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.tabs{background:var(--panel)}
+.tabs button.on{color:var(--hdr);border-bottom-color:var(--hdr)}
+details summary,.hint a{color:var(--link)}
+th{background:var(--soft)}
+.seg{border-radius:6px}.seg button.on{background:var(--accent)}
+.fcard{border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+@media(max-width:700px){.hero h1{font-size:23px}.hero .metrics{margin-left:0}.cover{display:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="vendor/react.production.min.js"></script>
+<script src="vendor/react-dom.production.min.js"></script>
+<script src="vendor/htm.umd.js"></script>
+<script>
+// ===== CORE START =====
+
+// Reference data: 39 CRAB isolates with measured combination MICs (Mero, Col, As = MIC alone; other fields = concentration in each combination)
+const DATA = [{"stt": 1, "Mero": 32, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 8.0, "CcA": 0.0625, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 1.0, "C3": 0.03125, "A3": 8}, {"stt": 4, "Mero": 128, "Col": 0.0625, "As": 128, "CmM": 0.03125, "MmC": 4.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 4.0, "C3": 0.03125, "A3": 8}, {"stt": 6, "Mero": 64, "Col": 0.125, "As": 64, "CmM": 0.03125, "MmC": 4.0, "CcA": 0.125, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 4.0, "C3": 0.03125, "A3": 8}, {"stt": 8, "Mero": 128, "Col": 0.25, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.125, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 8.0, "C3": 0.03125, "A3": 8}, {"stt": 9, "Mero": 64, "Col": 0.0625, "As": 128, "CmM": 0.03125, "MmC": 0.5, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 0.125, "C3": 0.03125, "A3": 8}, {"stt": 12, "Mero": 64, "Col": 0.125, "As": 64, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.0625, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 0.125, "C3": 0.03125, "A3": 8}, {"stt": 13, "Mero": 64, "Col": 0.125, "As": 64, "CmM": 0.03125, "MmC": 4.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 1.0, "C3": 0.03125, "A3": 8}, {"stt": 15, "Mero": 128, "Col": 0.25, "As": 128, "CmM": 0.03125, "MmC": 8.0, "CcA": 0.0625, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 2.0, "C3": 0.0625, "A3": 8}, {"stt": 16, "Mero": 32, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 8.0, "CcA": 0.0625, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 0.25, "C3": 0.03125, "A3": 8}, {"stt": 17, "Mero": 64, "Col": 0.0625, "As": 64, "CmM": 0.03125, "MmC": 32.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 4.0, "C3": 0.03125, "A3": 8}, {"stt": 18, "Mero": 128, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 8.0, "C3": 0.03125, "A3": 8}, {"stt": 19, "Mero": 64, "Col": 0.125, "As": 64, "CmM": 0.03125, "MmC": 4.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 2.0, "C3": 0.03125, "A3": 8}, {"stt": 20, "Mero": 32, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.0625, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 0.125, "C3": 0.03125, "A3": 8}, {"stt": 22, "Mero": 32, "Col": 0.125, "As": 64, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.0625, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 2.0, "C3": 0.03125, "A3": 8}, {"stt": 23, "Mero": 64, "Col": 0.125, "As": 64, "CmM": 0.03125, "MmC": 8.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 0.25, "C3": 0.03125, "A3": 8}, {"stt": 24, "Mero": 64, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 2.0, "C3": 0.03125, "A3": 8}, {"stt": 25, "Mero": 128, "Col": 0.0625, "As": 128, "CmM": 0.03125, "MmC": 4.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 2.0, "C3": 0.03125, "A3": 8}, {"stt": 26, "Mero": 64, "Col": 0.125, "As": 64, "CmM": 0.03125, "MmC": 4.0, "CcA": 0.0625, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 2.0, "C3": 0.03125, "A3": 8}, {"stt": 27, "Mero": 64, "Col": 0.125, "As": 64, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 2.0, "C3": 0.03125, "A3": 8}, {"stt": 28, "Mero": 64, "Col": 0.0625, "As": 128, "CmM": 0.0625, "MmC": 1.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 2.0, "C3": 0.03125, "A3": 8}, {"stt": 31, "Mero": 32, "Col": 0.0625, "As": 64, "CmM": 0.03125, "MmC": 4.0, "CcA": 0.0625, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 2.0, "C3": 0.03125, "A3": 8}, {"stt": 32, "Mero": 64, "Col": 0.25, "As": 64, "CmM": 0.0625, "MmC": 4.0, "CcA": 0.0625, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 1.0, "C3": 0.03125, "A3": 8}, {"stt": 33, "Mero": 128, "Col": 0.25, "As": 128, "CmM": 0.03125, "MmC": 8.0, "CcA": 0.0625, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 8.0, "C3": 0.03125, "A3": 8}, {"stt": 35, "Mero": 64, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.125, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 8.0, "C3": 0.03125, "A3": 8}, {"stt": 37, "Mero": 64, "Col": 0.125, "As": 64, "CmM": 0.03125, "MmC": 8.0, "CcA": 0.125, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 4.0, "C3": 0.03125, "A3": 8}, {"stt": 39, "Mero": 64, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 0.5, "C3": 0.03125, "A3": 8}, {"stt": 40, "Mero": 128, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 32.0, "CcA": 0.125, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 16.0, "C3": 0.03125, "A3": 8}, {"stt": 41, "Mero": 128, "Col": 0.25, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.125, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 8.0, "C3": 0.03125, "A3": 8}, {"stt": 47, "Mero": 128, "Col": 0.125, "As": 32, "CmM": 0.03125, "MmC": 8.0, "CcA": 0.0625, "AcC": 8, "MmA": 16, "AmM": 8, "M3": 2.0, "C3": 0.03125, "A3": 8}, {"stt": 48, "Mero": 64, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 4.0, "C3": 0.03125, "A3": 8}, {"stt": 50, "Mero": 128, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.125, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 16.0, "C3": 0.03125, "A3": 8}, {"stt": 51, "Mero": 128, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 8.0, "C3": 0.03125, "A3": 8}, {"stt": 52, "Mero": 128, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 4.0, "C3": 0.03125, "A3": 8}, {"stt": 54, "Mero": 128, "Col": 0.25, "As": 64, "CmM": 0.0625, "MmC": 8.0, "CcA": 0.125, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 8.0, "C3": 0.03125, "A3": 8}, {"stt": 56, "Mero": 64, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.0625, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 4.0, "C3": 0.03125, "A3": 8}, {"stt": 57, "Mero": 128, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.125, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 4.0, "C3": 0.03125, "A3": 8}, {"stt": 58, "Mero": 64, "Col": 0.0625, "As": 64, "CmM": 0.03125, "MmC": 4.0, "CcA": 0.0625, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 4.0, "C3": 0.03125, "A3": 8}, {"stt": 59, "Mero": 64, "Col": 0.125, "As": 128, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.03125, "AcC": 8, "MmA": 32, "AmM": 8, "M3": 2.0, "C3": 0.03125, "A3": 8}, {"stt": 61, "Mero": 64, "Col": 0.125, "As": 64, "CmM": 0.03125, "MmC": 16.0, "CcA": 0.03125, "AcC": 8, "MmA": 64, "AmM": 8, "M3": 0.25, "C3": 0.03125, "A3": 8}];
+const DT=0.1, NSTEPS=720, NWIN=240;
+const FU_M=0.92, FU_S=0.62, C_SUL=4.0;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function makeRng(seed){const u=mulberry32(seed);return{u,n(){let a=0;while(a===0)a=u();const b=u();return Math.sqrt(-2*Math.log(a))*Math.cos(2*Math.PI*b);}};}
+function lncv(rng,cv){const s=Math.sqrt(Math.log(1+cv*cv));return Math.exp(-0.5*s*s+s*rng.n());}
+function lnsig(rng,med,sig){return med*Math.exp(sig*rng.n());}
+
+const MERO={M1:{label:'1 g q8h, 30-min infusion',gd:3,b:[1000,8,0.5]},M2:{label:'1 g q8h, 3-h infusion',gd:3,b:[1000,8,3]},
+ M3:{label:'2 g q8h, 3-h infusion',gd:6,b:[2000,8,3]},M4:{label:'2 g q8h, 4-h infusion',gd:6,b:[2000,8,4]},
+ M5:{label:'6 g/day, continuous infusion',gd:6,b:[6000,24,24]},M6:{label:'2 g q6h, 3-h infusion',gd:8,b:[2000,6,3]}};
+const SUL={S1:{label:'1 g q6h, 30-min infusion',gd:4,b:[1000,6,0.5]},S2:{label:'1 g q6h, 4-h infusion',gd:4,b:[1000,6,4]},
+ S3:{label:'3 g q8h, 4-h infusion (9 g/day)',gd:9,b:[3000,8,4]},S4:{label:'2 g q8h, 4-h infusion (6 g/day)',gd:6,b:[2000,8,4]},
+ S5:{label:'9 g/day, continuous infusion',gd:9,b:[9000,24,24]},S6:{label:'4 g q8h, 4-h infusion (12 g/day)',gd:12,b:[4000,8,4]}};
+const CMS=[0,4.5,6,9,10.8,12];   // 0 = renally adjusted algorithm dose (Nation 2017, Table 3)
+const MG_PER_MU=33;
+const MERO_IDS=Object.keys(MERO), SUL_IDS=Object.keys(SUL);
+function meroReg(id,crcl){const [d,tau,ti]=MERO[id].b;if(crcl>=51)return[d,tau,ti];
+  if(crcl>=30){return id==='M5'?[4000,24,24]:[d,12,ti];}
+  return id==='M5'?[2000,24,24]:[d/2,12,ti];}
+function sulReg(id,crcl){const [d,tau,ti]=SUL[id].b;if(crcl<30){return id==='S5'?[4500,24,24]:[d,12,ti];}return[d,tau,ti];}
+function regText(r){const [d,tau,ti]=r;const ds=d>=1000?(d/1000)+' g':d+' mg';
+  if(tau===24&&ti===24)return ds+'/day, continuous infusion';
+  return ds+' q'+tau+'h, '+(ti<1?'30-min':ti+'-h')+' infusion';}
+function cmsLookupMG(c){return c<5?130:c<10?145:c<20?160:c<30?175:c<40?195:c<50?220:c<60?245:c<70?275:c<80?300:c<90?340:360;}  // Nation 2017 Table 3, mg CBA/day for Css 2 mg/L
+function cmsEff(mu,crcl){const alg=cmsLookupMG(crcl)/MG_PER_MU;if(mu===0)return alg;return crcl<60?Math.min(mu,alg):mu;}
+function colCss(doseMg,cr,z){return doseMg/Math.pow(10,0.0048*cr+1.667)*Math.exp(0.415*z);}   // Nation 2017 regression (Fig 2B) with log-normal scatter (sigma 0.415)
+
+function adjWeight(wt,heightCm,sex){const ibw=(sex==='F'?45.5:50)+2.3*(heightCm/2.54-60);return wt>1.2*ibw?ibw+0.4*(wt-ibw):wt;}   // Crandon 2011: adjusted body weight when actual weight exceeds ideal by more than 20%
+function makePatients(n,crcl,crclCv,wt,seed,age,pOld,opts){
+  opts=opts||{};const effWt=opts.height?adjWeight(wt,opts.height,opts.sex):wt;
+  const rng=makeRng(seed);
+  const P={n,crcl:new Float64Array(n),m_k10:new Float64Array(n),m_k12:new Float64Array(n),m_k21:new Float64Array(n),m_V1:new Float64Array(n),
+    s_k10:new Float64Array(n),s_k12:new Float64Array(n),s_k21:new Float64Array(n),s_V1:new Float64Array(n),eta:new Float64Array(n),
+    rM_elf:new Float64Array(n),rM_csf:new Float64Array(n),rM_tis:new Float64Array(n),rS_elf:new Float64Array(n),old:new Uint8Array(n)};
+  for(let i=0;i<n;i++){
+    const cr=opts.range?(opts.range[0]+(opts.range[1]-opts.range[0])*rng.u()):Math.min(400,Math.max(5,crcl*lncv(rng,crclCv))); P.crcl[i]=cr;
+    P.m_V1[i]=0.239*effWt*Math.exp(0.52*rng.n()); P.m_k10[i]=(0.3922+0.0025*cr)*Math.exp(0.35*rng.n()); P.m_k12[i]=0.487*Math.exp(0.42*rng.n()); P.m_k21[i]=0.647*Math.exp(0.54*rng.n());
+    // Sulbactam: Jaruratanasirikul 2016 (PMID 27671056). CL depends on age group and CrCl; Vc 14.56 L, Vp 9.55 L, Q 11.5 L/h.
+    const old=(pOld!=null&&pOld!==undefined)?(rng.u()<pOld):(age>65); P.old[i]=old?1:0;
+    const CLs=(old?Math.exp(0.54+0.28*cr/30):Math.exp(1.57+0.46*cr/83))*Math.exp(0.484*rng.n());
+    const V1s=14.56*Math.exp(0.52*rng.n()),Vp=9.55*Math.exp(0.531*rng.n()),Q=11.5*Math.exp(0.514*rng.n());
+    P.s_V1[i]=V1s; P.s_k10[i]=CLs/V1s; P.s_k12[i]=Q/V1s; P.s_k21[i]=Q/Vp;
+    P.eta[i]=Math.exp(0.415*rng.n());
+    P.rM_elf[i]=lnsig(rng,0.27,0.6); P.rM_csf[i]=lnsig(rng,0.09,0.65); P.rM_tis[i]=lnsig(rng,0.6,0.4); P.rS_elf[i]=lnsig(rng,0.5,0.4);
+  }
+  return P;
+}
+function simulate(n,k10,k12,k21,V1,reg){
+  const dose=reg[0],tau=reg[1],tinf=reg[2];
+  const ts=Math.round(tau/DT),ti=Math.round(tinf/DT),rate=dose/tinf;
+  const out=new Float32Array(n*NWIN);
+  for(let i=0;i<n;i++){
+    const a=k10[i]+k12[i]+k21[i],disc=Math.sqrt(a*a-4*k10[i]*k21[i]);
+    const l1=(-a+disc)/2,l2=(-a-disc)/2;
+    const m11=-(k10[i]+k12[i]),m12=k21[i],m21=k12[i],m22=-k21[i];
+    const e1=Math.exp(l1*DT),e2=Math.exp(l2*DT),dl=l1-l2;
+    const p11=(e1*(m11-l2)-e2*(m11-l1))/dl,p12=(e1*m12-e2*m12)/dl,p21=(e1*m21-e2*m21)/dl,p22=(e1*(m22-l2)-e2*(m22-l1))/dl;
+    const det=k10[i]*k21[i],r1=p11-1,r2=p21;
+    const g1=(m22*r1-m12*r2)/det,g2=(-m21*r1+m11*r2)/det;
+    let x1=0,x2=0;const inv=1/V1[i];const o=i*NWIN;
+    for(let s=0;s<NSTEPS;s++){
+      const u=((s%ts)<ti)?rate:0;
+      const nx1=p11*x1+p12*x2+g1*u,nx2=p21*x1+p22*x2+g2*u;x1=nx1;x2=nx2;
+      if(s>=NSTEPS-NWIN)out[o+s-(NSTEPS-NWIN)]=x1*inv;
+    }
+  }
+  return out;
+}
+function minOf(ser,n){const m=new Float64Array(n);for(let i=0;i<n;i++){let v=1e9;const b=i*NWIN;for(let t=0;t<NWIN;t++){if(ser[b+t]<v)v=ser[b+t];}m[i]=v;}return m;}
+function okTime(ser,n,ratio,thr,T){ // ratio: mảng theo bệnh nhân; thr: mảng hoặc số
+  const o=new Uint8Array(n);const isArr=typeof thr!=='number';
+  for(let i=0;i<n;i++){const th=(isArr?thr[i]:thr)/ratio[i];const b=i*NWIN;let c=0;for(let t=0;t<NWIN;t++){if(ser[b+t]>th)c++;}o[i]=(c/NWIN>=T-1e-9)?1:0;}
+  return o;
+}
+function ratioM(P,site){const n=P.n;if(site==='elf')return P.rM_elf;if(site==='csf')return P.rM_csf;if(site==='tissue')return P.rM_tis;return new Float64Array(n).fill(FU_M);}
+function ratioS(P,site,sulCsf){const n=P.n;if(site==='elf')return P.rS_elf;if(site==='csf')return new Float64Array(n).fill(sulCsf);if(site==='tissue')return new Float64Array(n).fill(0.5);return new Float64Array(n).fill(FU_S);}
+function sulTarget(site){return site==='elf'?0.475:0.6;}
+function cssArr(P,mu,nominal){const a=new Float64Array(P.n),D=cmsEff(mu,nominal)*MG_PER_MU;for(let i=0;i<P.n;i++){const cr=P.crcl[i];a[i]=D/Math.pow(10,0.0048*cr+1.667)*P.eta[i];}return a;}
+function okCol(css,site,cc,o){const n=css.length;const out=new Uint8Array(n);
+  for(let i=0;i<n;i++){let v;
+    if(site==='elf')v=o.rElf*css[i];else if(site==='csf')v=0.09*css[i];else if(site==='tissue')v=0.12*o.fu*css[i];else v=o.fu*css[i];
+    out[i]=v>=(typeof cc==='number'?cc:cc[i])?1:0;}
+  return out;}
+function colEff(css,site,o){const n=css.length,a=new Float64Array(n);
+  for(let i=0;i<n;i++){a[i]=site==='elf'?o.rElf*css[i]:site==='csf'?0.09*css[i]:site==='tissue'?0.12*o.fu*css[i]:o.fu*css[i];}return a;}
+function wilson(k,n){const z=1.96,p=k/n,d=1+z*z/n,c=p+z*z/(2*n),h=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n));return[Math.max(0,(c-h)/d),Math.min(1,(c+h)/d)];}
+function mean(u,n){let s=0;for(let i=0;i<n;i++)s+=u[i];return s/n;}
+function ccFromMic(micC,mult){return Math.max(0.03125,0.125*micC)*mult;}
+// Formulas: which drugs are active and which measured columns give their concentrations in the combination
+const FORMS={
+ T:{id:'T',name:'Triple combination',short:'Colistin + meropenem + A/S',m:1,s:1,c:1,cmF:'M3',ccF:'C3',caF:'A3'},
+ CM:{id:'CM',name:'Colistin + meropenem',short:'Colistin + meropenem',m:1,s:0,c:1,cmF:'MmC',ccF:'CmM'},
+ CS:{id:'CS',name:'Colistin + ampicillin/sulbactam',short:'Colistin + A/S',m:0,s:1,c:1,ccF:'CcA',caF:'AcC'},
+ MS:{id:'MS',name:'Meropenem + ampicillin/sulbactam',short:'Meropenem + A/S',m:1,s:1,c:0,cmF:'MmA',caF:'AmM'}};
+const FORM_IDS=['T','CM','CS','MS'];
+const SYN={T:[31,39],CM:[31,39],CS:[5,39],MS:[3,39]};   // isolates with synergy / isolates tested
+// Predict combination concentrations from the three monotherapy MICs: kernel on the 39 isolates; meropenem keeps the observed fold reduction, colistin and ampicillin take the neighbour's measured value
+function sampleComb(fid,micM,micC,micA,n,rng){
+  const F=FORMS[fid],N=DATA.length,lm=Math.log2(micM),lc=Math.log2(micC),la=Math.log2(micA);
+  const w=new Float64Array(N);let sw=0,sw2=0;
+  for(let j=0;j<N;j++){const d=DATA[j];
+    const dm=(lm-Math.log2(d.Mero))/0.35,dc=(lc-Math.log2(d.Col))/1.0,da=(la-Math.log2(d.As))/1.0;
+    w[j]=Math.exp(-0.5*(dm*dm+dc*dc+da*da));sw+=w[j];}
+  if(sw<=1e-300){for(let j=0;j<N;j++){const d=DATA[j];const dm=(lm-Math.log2(d.Mero)),dc=(lc-Math.log2(d.Col)),da=(la-Math.log2(d.As));w[j]=Math.exp(-0.5*(dm*dm*0.35*0.35+dc*dc+da*da)/1.0);sw+=w[j];}}
+  const cum=new Float64Array(N);let acc=0;for(let j=0;j<N;j++){acc+=w[j]/sw;cum[j]=acc;sw2+=(w[j]/sw)*(w[j]/sw);}
+  const cm=F.m?new Float64Array(n):null,cc=F.c?new Float64Array(n):null,ca=F.s?new Float64Array(n):null;
+  const cscale=Math.max(1,micC/0.25);
+  for(let i=0;i<n;i++){const u=rng.u();let j=0;while(j<N-1&&cum[j]<u)j++;const d=DATA[j];
+    if(F.m)cm[i]=d[F.cmF]/d.Mero*micM; if(F.c)cc[i]=d[F.ccF]*cscale; if(F.s)ca[i]=d[F.caF];}
+  return{cm,cc,ca,neff:1/sw2};
+}
+function inRange(micM,micC,micA){return micM>=32&&micM<=128&&micC>=0.0625&&micC<=0.25&&micA>=32&&micA<=128;}
+function quantile(sorted,q){const k=(sorted.length-1)*q,f=Math.floor(k),c=Math.ceil(k);return sorted[f]+(sorted[c]-sorted[f])*(k-f);}
+function bandSeries(ser,n,ratio){const out=[];const buf=new Float32Array(n);
+  for(let t=0;t<NWIN;t+=2){for(let i=0;i<n;i++)buf[i]=ser[i*NWIN+t]*ratio[i];const s=Float32Array.from(buf).sort();out.push([t*DT,quantile(s,0.05),quantile(s,0.5),quantile(s,0.95)]);}
+  return out;}
+
+function computeAll(inp){
+  const f=FORMS[inp.form||'T'];
+  const cScale=inp.cScale||1,target=inp.target||0.9,limM=inp.limM!=null?inp.limM:0.2,limC=inp.limC!=null?inp.limC:0.3;
+  const n=inp.n,P=makePatients(n,inp.crcl,inp.crclCv/100,inp.weight,20261112,inp.age||65,null,{height:inp.height||165,sex:inp.sex});
+  if(inp.sulElfR&&inp.sulElfR!==0.5){const k=inp.sulElfR/0.5;for(let i=0;i<n;i++)P.rS_elf[i]*=k;}
+  const rng=makeRng(777),ones=new Uint8Array(n).fill(1);
+  let cmA=null,ccA=null,caA=null,neff=null;
+  if(inp.mode==='manual'){if(f.m)cmA=new Float64Array(n).fill(inp.cmManual);if(f.c)ccA=new Float64Array(n).fill(inp.ccManual);if(f.s)caA=new Float64Array(n).fill(inp.caManual||8);}
+  else{const s=sampleComb(f.id,inp.micM,inp.micC,inp.micA,n,rng);cmA=s.cm;ccA=s.cc;caA=s.ca;neff=s.neff;}
+  const ccT=f.c?Float64Array.from(ccA,v=>v*inp.mult):null, csT=f.s?Float64Array.from(caA,v=>v/2):null;
+  const site=inp.site,o={fu:inp.fuCol,rElf:inp.colElfR};
+  const rM=ratioM(P,site),rS=ratioS(P,site,inp.sulCsf);
+  const mSer={},mReg={},mTox={},okM={},sSer={},sReg={},okS={},cssK={},cTox={},okC={};
+  for(const id of MERO_IDS){const reg=meroReg(id,inp.crcl);mReg[id]=reg;mSer[id]=simulate(n,P.m_k10,P.m_k12,P.m_k21,P.m_V1,reg);mTox[id]=mean(minOf(mSer[id],n).map(v=>v>=45?1:0),n);okM[id]=f.m?okTime(mSer[id],n,rM,cmA,inp.tgtM):ones;}
+  for(const id of SUL_IDS){const reg=sulReg(id,inp.crcl);sReg[id]=reg;sSer[id]=simulate(n,P.s_k10,P.s_k12,P.s_k21,P.s_V1,reg);okS[id]=f.s?okTime(sSer[id],n,rS,csT,sulTarget(site)):ones;}
+  for(const mu of CMS){const css=cssArr(P,mu,inp.crcl);if(cScale!==1){for(let i=0;i<css.length;i++)css[i]*=cScale;}cssK[mu]=css;let k=0;for(let i=0;i<n;i++)if(css[i]>=4)k++;cTox[mu]=k/n;okC[mu]=f.c?okCol(css,site,ccT,o):ones;}
+  const a=okM[inp.mId],b=okS[inp.sId],c=okC[inp.kMU];let J=0;for(let i=0;i<n;i++)J+=a[i]&b[i]&c[i];J/=n;
+  const jci=wilson(Math.round(J*n),n);
+  const sel={joint:J,jlo:jci[0],jhi:jci[1],pM:f.m?mean(a,n):null,pS:f.s?mean(b,n):null,pC:f.c?mean(c,n):null,toxM:f.m?mTox[inp.mId]:0,toxC:f.c?cTox[inp.kMU]:0,medCss:(()=>{const s=Float64Array.from(cssK[inp.kMU]).sort();return quantile(s,0.5);})()};
+  const combos=[];
+  for(const mid of (f.m?MERO_IDS:[null]))for(const sid of (f.s?SUL_IDS:[null]))for(const mu of (f.c?CMS:[null])){
+    const x=mid?okM[mid]:ones,y=sid?okS[sid]:ones,z=mu!==null?okC[mu]:ones;let j=0;for(let i=0;i<n;i++)j+=x[i]&y[i]&z[i];j/=n;
+    const tm=mid?mTox[mid]:0,tc=mu!==null?cTox[mu]:0;
+    combos.push({mid,sid,mu,joint:j,cost:(mid?MERO[mid].gd/6:0)+(sid?SUL[sid].gd/9:0)+(mu!==null?cmsEff(mu,inp.crcl)/9:0),toxM:tm,toxC:tc,safe:(tm<=limM&&tc<limC)});}
+  const safeOk=combos.filter(x=>x.safe&&x.joint>=target).sort((p,q)=>p.cost-q.cost||q.joint-p.joint);
+  const bestAny=combos.filter(x=>x.safe).sort((p,q)=>q.joint-p.joint||p.cost-q.cost);
+  const top5=bestAny.slice(0,5);
+  const nS=Math.min(n,600),MM=[16,32,64,128,256],CC=[0.0625,0.125,0.25,0.5,1],AA=[32,64,128,256];
+  const ax=f.id==='T'?{r:'M',c:'C',t:'A'}:f.id==='CM'?{r:'M',c:'C',t:null}:f.id==='CS'?{r:'A',c:'C',t:null}:{r:'M',c:'A',t:null};
+  const vals={M:MM,C:CC,A:AA},names={M:'Meropenem MIC',C:'Colistin MIC',A:'Ampicillin MIC'};
+  const tabs=ax.t?vals[ax.t]:[0];const scan={};
+  const serM=mSer[inp.mId],serS=sSer[inp.sId];
+  for(const T of tabs){scan[T]=[];for(const R of vals[ax.r]){const row=[];for(const Cc of vals[ax.c]){
+    const mic={M:inp.micM,C:inp.micC,A:inp.micA};mic[ax.r]=R;mic[ax.c]=Cc;if(ax.t)mic[ax.t]=T;
+    let cmv=null,ccv=null,csv=null;
+    if(inp.mode==='manual'){if(f.m)cmv=new Float64Array(nS).fill(inp.cmManual);if(f.c)ccv=new Float64Array(nS).fill(inp.ccManual*inp.mult);if(f.s)csv=new Float64Array(nS).fill((inp.caManual||8)/2);}
+    else{const s=sampleComb(f.id,mic.M,mic.C,mic.A,nS,makeRng(1000+Math.round(mic.M*7)+Math.round(mic.C*1000)+mic.A));if(f.m)cmv=s.cm;if(f.c)ccv=Float64Array.from(s.cc,v=>v*inp.mult);if(f.s)csv=Float64Array.from(s.ca,v=>v/2);}
+    const om=f.m?okTime(serM,nS,rM,cmv,inp.tgtM):null,os=f.s?okTime(serS,nS,rS,csv,sulTarget(site)):null,oc=f.c?okCol(cssK[inp.kMU].subarray(0,nS),site,ccv,o):null;
+    let j=0;for(let i=0;i<nS;i++)j+=(om?om[i]:1)&(os?os[i]:1)&(oc?oc[i]:1);
+    const ex=(f.m&&(mic.M<32||mic.M>128))||(f.c&&(mic.C<0.0625||mic.C>0.25))||(f.s&&(mic.A<32||mic.A>128));
+    row.push({j:j/nS,ex});}scan[T].push(row);}}
+  const map={rows:vals[ax.r],cols:vals[ax.c],tabs:ax.t?tabs:null,rowName:names[ax.r],colName:names[ax.c],tabName:ax.t?names[ax.t]:null,scan,ax};
+  const cmp=[],cacheM=new Map(),cacheS=new Map(),cacheC=new Map();
+  const gM=t=>{let v=cacheM.get(t);if(!v){v=okTime(mSer[inp.mId],n,rM,t,inp.tgtM);cacheM.set(t,v);}return v;};
+  const gS=t=>{let v=cacheS.get(t);if(!v){v=okTime(sSer[inp.sId],n,rS,t,sulTarget(site));cacheS.set(t,v);}return v;};
+  const gC=t=>{let v=cacheC.get(t);if(!v){v=okCol(cssK[inp.kMU],site,t,o);cacheC.set(t,v);}return v;};
+  for(const fid of FORM_IDS){const F=FORMS[fid];let sum=0,n90=0,sm=0,ss=0,sc=0;
+    for(let j=0;j<DATA.length;j++){const d=DATA[j];
+      const x=F.m?gM(d[F.cmF]):ones,y=F.s?gS(d[F.caF]/2):ones,z=F.c?gC(d[F.ccF]*inp.mult):ones;let t=0,tm=0,ts=0,tc=0;
+      for(let i=0;i<n;i++){t+=x[i]&y[i]&z[i];tm+=x[i];ts+=y[i];tc+=z[i];}
+      const p=t/n;sum+=p;if(p>=target)n90++;sm+=tm/n;ss+=ts/n;sc+=tc/n;}
+    const N=DATA.length;cmp.push({id:fid,name:F.short,cfr:sum/N,p90:n90/N,pM:F.m?sm/N:null,pS:F.s?ss/N:null,pC:F.c?sc/N:null,syn:SYN[fid]});}
+  const chart={mero:f.m?bandSeries(mSer[inp.mId],n,rM):null,sul:f.s?bandSeries(sSer[inp.sId],n,rS):null};
+  const med=arr=>{const s=Float64Array.from(arr).sort();return quantile(s,0.5);};
+  const cmS=f.m?Float64Array.from(cmA).sort():null;
+  return{form:f.id,F:f,cScale,target,limM,limC,colVals:f.c?colEff(cssK[inp.kMU],site,o):null,P,sel,combos,safeOk,bestAny,top5,map,cmp,chart,
+    cm:f.m?{p10:quantile(cmS,0.1),p50:quantile(cmS,0.5),p90:quantile(cmS,0.9)}:null,cc:f.c?med(ccT):null,cs:f.s?med(csT):null,neff,
+    regM:f.m?mReg[inp.mId]:null,regS:f.s?sReg[inp.sId]:null,effMU:f.c?cmsEff(inp.kMU,inp.crcl):null,
+    inRange:inp.mode==='manual'?true:!((f.m&&(inp.micM<32||inp.micM>128))||(f.c&&(inp.micC<0.0625||inp.micC>0.25))||(f.s&&(inp.micA<32||inp.micA>128))),inp};
+}
+
+// ===== CORE END =====
+</script>
+<script>
+const {useState,useEffect}=React;
+const html=htm.bind(React.createElement);
+const IMG={"kidney": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZlcnNpb249IjEuMCIgdmlld0JveD0iMCAwIDI5MS41NTMgNDE2LjU0MiI+PGRlZnM+PGNsaXBQYXRoIGNsaXBQYXRoVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBpZD0iYSI+PHBhdGggZD0iTTUuNDM3LjMySDI5Ni42MnY0MTYuODY3SDUuNDM3eiIvPjwvY2xpcFBhdGg+PC9kZWZzPjxwYXRoIGNsaXAtcGF0aD0idXJsKCNhKSIgZD0iTTE1LjkxIDI4MS40N2M0LjcxNyAxNS4wMyAxMi41NTMgMzUuMDk4IDE0LjYzMSA0MS4yMTQgOS4zOTUgMzAuNjIyIDQ5LjA5IDEwMS4zMzkgMTIwLjA4OCA5Mi40NjQgNC43MTcgMCA4Ljg3NC0uNTYgMTMuNTkxLTEuNjc5IDQ1LjkzMy03Ljc5NSA2Ni4zMi0zNy4zMzcgNzIuNTU2LTY1LjE2IDQuNzE4LTIxLjc0NyA3LjMxNi02MS44NDMuNTItODIuNDMtNi4yMzYtMjAuNjI4LTEyLjUxMi0yNy44NjMtMTMuNTUyLTQ3Ljg5MS0uNTItMjAuNjI4IDYuNzk2LTQxLjIxNSAxNS4xNTEtNTQuMDQ3IDguMzU1LTEyLjc5MyAyNC41MDUtMzUuMDYgMjIuOTQ2LTczLjUxNkMyNTguMjA0IDQ4LjY5IDIzNC42OTggMy41NTggMTY1Ljc4IDEuMzIgMTI0LjUyNS43NiA4Ni40MjggMTMuNTkyIDYyLjkyMiA0OS4yNWMtNi43OTYgOS45OTQtMTAuOTUzIDE3Ljc5LTEzLjU5MiAyMy45NDYtNS43MTYgMTUuMDMtMTYuMTkgMzcuMjk3LTIyLjQyNiA1MC4wOS01LjIzNyAxMS43MTItMTEuNTEzIDI4Ljk4Mi0xNi4xOSA1NS4xNjYtOS45NTQgNTQuMDA3IDAgODguNTQ2IDUuMTk2IDEwMy4wMTd6IiBmaWxsPSIjODAyNDQ0IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMjM3LjI1NiAyNjUuNzk5Yy02LjI3Ni0yMC42MjgtMTIuNTUyLTI3Ljg2My0xMy41OTItNDcuODkxLS41Ni0yMC42MjggNi43OTYtNDEuMjE1IDE1LjE1MS01NC4wNDdsLjU2LjU2YzI2LjcwNCAyMS43NDYgNTIuODg4IDQxLjc3NCA1NC45NjcgMTE5LjIwNyAyLjA3OCA4NC42MjkgMCAxMjQuNzI1IDAgMTI0LjcyNWgtMjAuNDI4YzAtMzAuNjIyLS41Mi01Ni4yNDYtNi4yNzYtOTAuMTg2LTMuMTU4LTE1LjYzLTEyLjAzMy0zMS4yMi0yNi43MDQtMzIuODYtLjUyLTcuMjc2LTEuNTYtMTMuOTUxLTMuNjc4LTE5LjUwOHoiIGZpbGw9IiNmZGMyNzAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik00Ny43MzEgMTM2LjU1N2M3LjgzNS0xNi43MSAyMS40MjctNDcuODkgMzguMTM3LTcyLjk1NiAyMy41NDYtMzUuMDk4IDY2LjM2LTUzLjQ4NyA4MS41MS01NC42MDZDMTMwLjI4MiAyLjgzOCA3OS4wNzMgMzEuMjYgNjQuNDQyIDY0LjEyYy0xNC42MzEgMzIuOS0xOC4yNjkgNDQuMDEzLTI2LjEwNCA2MC4yMDQtOC4zNTUgMTYuMTUtMjUuMTA1IDY0LjA0LTIyLjQ2NyAxMDYuOTM1IDQuMTU4LTI0LjUwNSAyNS41ODUtODYuMzQ4IDMxLjg2MS05NC43MDN6IiBmaWxsPSIjYTQ1YjZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNNjMuNDQyIDYzLjYwMSA1MC4zNjkgOTUuMzgyYy01LjIzNiAxMS43MTMtNy4zMTUgMTkuNTA4LTEyLjAzMiAyOC45ODMgNC43MTctOS40NzUgOC45MTQtMTYuNzEgMTMuNTkyLTI4LjQyM0w2NS41MiA2NC43MkM4MC4xNTEgMzEuODYgMTMxLjM2IDIuODM4IDE2Ny4zOCA4Ljk5NSAxMzAuMzIgMi44MzggNzguNTkyIDI5LjA2MiA2My40NDIgNjMuNnoiIGZpbGw9IiNmZmYiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0yMzMuNTc4IDI3MS45NTVjOC4zMTUgMjAuMDY4IDIuMDggNjQuMDQxLTcuODM1IDg3LjQyNy05LjM5NCAyMy4zODYtNDYuOTcxIDU0LjU2Ny05OC4xIDQ1LjY5Mi0yNS41ODUtNC40NzctNTYuODg2LTIzLjQyNS03Mi4wMzctNTAuMTMgMTQuMTEyIDExLjY3NCA2NS43NiAyMy45NDYgMTAyLjgxOCA2LjY3NyAzNy4wNTgtMTcuODMgNzcuNzUzLTQwLjA5NiA2OS45MTgtODIuOTktMy42MzgtMjAuNTg3LTUuNzU3LTIyLjI2Ni05LjkxNC0yNS42MjQgNS43NTYgMS4xMTkgMTEuOTkyIDcuNzk1IDE1LjE1IDE4Ljk0OHpNMTk5LjEyIDEyLjgzMmMxOC44MjggNy44MzUgNTUuNDQ2IDI2LjIyNCA1Ny4wMDUgNzYuOTE0IDIuMDc5IDUwLjE3LTE2LjcxIDY1Ljc2LTI0LjU4NSA3NC4xMTUtNy4zMTYgNy43OTUtMjIuOTg2IDE1LjAzLTI5LjI2MyAxMy4zOTIgOS45MTQtNS4wMzcgMjIuOTg2LTE4Ljk0OSAyOC43NDMtMzUuMTQgNi43OTYtMTguOTA4IDEyLjU1Mi0zNy44NTYgNS43NTYtNzEuMzE2LTYuMjc2LTMwLjEwMi0xNS4xNS00NC41NzMtMzcuNjU3LTU3Ljk2NXoiIGZpbGw9IiM3MDFjM2EiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0xMTguMjg4IDMwLjgyMWMtMTMuMDMyIDguOTE1LTMyLjg2IDMzLjQyLTM2LjUzOCA0OS4wMS00LjE1NyAxNy43OS0xLjU1OSAzMS43MDEtMTUuNjcgNDYuMTczLTExLjQ3MyAxMS4xNTMtMjguMTgzIDMxLjc0LTM0LjQ2IDQ3Ljg1IDYuNzk3LTE3LjIyOSA2Ljc5Ny00Ni4xNzEgMTUuMTUyLTYyLjMyMiA4Ljg3NC0xNy4yMyAxOC43ODgtMzQuNDk5IDMwLjgyMS00OC45N3oiIGZpbGw9IiNhNDViNmYiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0yNDUuNjUxIDE3Ni4xNzNjMTQuNjcxIDEwLjU1NCA0MC43NzUgMjkuNTAyIDQ1LjQ5MyAxMjIuNDg2IDEuNTU5IDM1LjYxOC41MiAxMDYuMzM2LjUyIDEwNi4zMzYgMS41NTgtNDAuNjE2LTQuNjc4LTEyNS4yODUtMTMuNTkzLTE1NC43ODctOC44NzQtMzAuMDYxLTI5Ljc4MS01My40NDctMzcuNjE3LTYwLjEyMy03LjM1NS02LjY3Ni0zLjY3OC0yMC42MjggNS4xOTctMTMuOTEyeiIgZmlsbD0iI2ZlZDY5YyIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTIyNy45NDIgMjEzLjM1Yy0yLjExOSAxMi44MzMgMy42MzggMjUuMTA1IDcuODM1IDM3LjMzOCAzLjYzOCA4LjkxNSA0LjcxNyAxNy44MyA4Ljg3NSAyNi43NDQgNC43MTcgOC4zOTUgMTIuNTUyIDEwLjAzNCAxNy43ODkgMTguNDI5IDYuNzk2IDExLjExMyA4Ljg3NSAzMC4wNjEgMTEuOTkzIDQ3LjMzMSAwLTcuMjM2LTEuMDQtMjUuMDY1LTMuMTE4LTMyLjMtMS41Ni02LjY3Ni0uNTItMTAuNTk0LTIuNTk5LTE2LjcxLTMuNjc4LTEwLjU5NC0xNC4xMTEtMjAuMDY4LTE4LjgyOC0yOS41NDItNS43NTctMTIuMjczLTUuMjM3LTE4LjM5LTEyLjU1My0zMC4xMDItNC4xNTctNi42NzYtOS4zOTQtMTQuNDcxLTguMzU1LTIyLjg2NnoiIGZpbGw9IiNmZWFmNDkiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0yNDMuNTMyIDE3NS40OTRjLTEzLjE1Mi02LjY3Ni0xMi41OTIgMjMuOTA1LTExLjU1MyAyOS40NjIgMS41Ni0zLjg3OCAxLjA0LTEyLjIzMyA1Ljc1Ny0xMy4zMTIgMy42NzgtMS4xMiA3LjkxNSAzLjMxOCA5Ljk5NCA1LjU1NiAxLjA0LTUuNTU2IDEuMDQtMTAuNTUzLTEuNTYtMTUuNTl6IiBmaWxsPSIjZmVkNjljIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMjAzLjkxNiAyMzIuM2MxLjU2IDEuNjc4IDIuNTk5IDQuNDM3IDQuMTU4IDYuMTE2IDEuNTU5IDEuNjc4IDQuNjc3IDIuMjM4IDYuNzU2IDIuNzk4IDUuMTk3IDIuNzk4IDkuODc0IDYuMTU2IDE0LjUxMSA5LjQ3NC04LjI3NS03Ljc5NS03Ljc1NS0xOS41MDgtNy43NTUtMzAuNzAxLS41MiA2LjcxNi00LjE1OCAxOS41NDgtMTIuNDczIDE0LjU1eiIgZmlsbD0iIzcwMWMzYSIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTE5MS44ODQgMTk0Ljk2MmMtOS45MTQgMTguNDI5LTExLjQ3MyAzOC40OTctNS43MTcgNDYuODUxIDcuMjc2IDkuNDc1IDIxLjg2NyAwIDMwLjcwMiAxMC41OTQtNi4yMzctMy4zMTgtMTYuNjcgOC45MTUtMzIuODIuNTYtMTYuMTEtOC45MTUtMTYuNjctMzcuODk3IDcuODM1LTU4LjAwNXoiIGZpbGw9IiM5ODQ5NjEiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0xODMuNTI5IDIzMi45MzljLTEuNTYtNC40MzcgMi42MzgtNy4yMzYgNS43NTYtMTAuMDM0IDcuMzE2LTYuMTE2IDE3LjIzIDMuOTE4IDIwLjg2OCAxLjY3OSA0LjE1Ny0yLjIzOSAyLjU5OC04LjkxNSAyLjA3OC0xNi43NSAwLTcuMjM2IDEuMDQtMTUuNTktMy4xMTgtMjAuMDY4LTYuNzk2LTcuODM1LTIwLjM0NyAzLjM1OC0yNS4wNjUgOS40NzQtOC4zMTUgMTAuNTk0LTEwLjQzMyAyMC4xMDgtMTAuNDMzIDM0LjA2eiIgZmlsbD0iIzk4NDk2MSIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggY2xpcC1wYXRoPSJ1cmwoI2EpIiBkPSJNMTUuOTEgMjgxLjQ3YzQuNzE3IDE1LjAzIDEyLjU1MyAzNS4wOTggMTQuNjMxIDQxLjIxNCA5LjM5NSAzMC42MjIgNDkuMDkgMTAxLjMzOSAxMjAuMDg4IDkyLjQ2NCAwIDAgMCAwIDAgMCA0LjcxNyAwIDguODc0LS41NiAxMy41OTEtMS42NzkgNDUuOTMzLTcuNzk1IDY2LjMyLTM3LjMzNyA3Mi41NTYtNjUuMTYgNC43MTgtMjEuNzQ3IDcuMzE2LTYxLjg0My41Mi04Mi40My02LjIzNi0yMC42MjgtMTIuNTEyLTI3Ljg2My0xMy41NTItNDcuODkxLS41Mi0yMC42MjggNi43OTYtNDEuMjE1IDE1LjE1MS01NC4wNDcgOC4zNTUtMTIuNzkzIDI0LjUwNS0zNS4wNiAyMi45NDYtNzMuNTE2QzI1OC4yMDQgNDguNjkgMjM0LjY5OCAzLjU1OCAxNjUuNzggMS4zMiAxMjQuNTI1Ljc2IDg2LjQyOCAxMy41OTIgNjIuOTIyIDQ5LjI1Yy02Ljc5NiA5Ljk5NC0xMC45NTMgMTcuNzktMTMuNTkyIDIzLjk0Ni01LjcxNiAxNS4wMy0xNi4xOSAzNy4yOTctMjIuNDI2IDUwLjA5LTUuMjM3IDExLjcxMi0xMS41MTMgMjguOTgyLTE2LjE5IDU1LjE2Ni05Ljk1NCA1NC4wMDcgMCA4OC41NDYgNS4xOTYgMTAzLjAxNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9Ii44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBjbGlwLXBhdGg9InVybCgjYSkiIGQ9Ik0yMzcuMjU2IDI2NS43OTljLTYuMjc2LTIwLjYyOC0xMi41NTItMjcuODYzLTEzLjU5Mi00Ny44OTEtLjU2LTIwLjYyOCA2Ljc5Ni00MS4yMTUgMTUuMTUxLTU0LjA0N2wuNTYuNTZjMjYuNzA0IDIxLjc0NiA1Mi44ODggNDEuNzc0IDU0Ljk2NyAxMTkuMjA3IDIuMDc4IDg0LjYyOSAwIDEyNC43MjUgMCAxMjQuNzI1aC0yMC40MjhjMC0zMC42MjItLjUyLTU2LjI0Ni02LjI3Ni05MC4xODYtMy4xNTgtMTUuNjMtMTIuMDMzLTMxLjIyLTI2LjcwNC0zMi44Ni0uNTItNy4yNzYtMS41Ni0xMy45NTEtMy42NzgtMTkuNTA4IiBmaWxsPSJub25lIiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxwYXRoIGQ9Ik0yMzguNzc1IDE2My44NmMtNC4xNTcgNS41NTctMTQuMDMxIDE4LjkxLTI5LjY2MiAxOS40MjltMjkuMjYzIDg1Ljc4OGMtNC4xNTgtMTUuMDMxLTI1LjA2NS0zMC4wNjItNDIuODU1LTI3LjI2NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9Ii44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMjA4LjQ3NCAyNDIuMzczYy00LjYzOC0yLjc5OC01LjY3Ny03LjgzNS05LjgzNC0xMC4wNzQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+", "blood": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZlcnNpb249IjEuMCIgdmlld0JveD0iMCAwIDIwNS4wNzcgNDg1LjM2NyI+PGRlZnM+PGNsaXBQYXRoIGNsaXBQYXRoVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBpZD0iYSI+PHBhdGggZD0iTTMuMTk4IDIuMTU5aDIwNC44MzZ2NDg1LjcwNUgzLjE5OHoiLz48L2NsaXBQYXRoPjwvZGVmcz48cGF0aCBkPSJNMTU3LjYyNCAzLjE1OGMtOS4zMTQgMTkuNTA4LTI5LjE0MiAzMi45NC01Mi4yMDggMzIuOTRTNjIuMzIyIDIyLjY2NiA1My4wMDggMy4xNThMNDcuODkgODIuNDdzLTEuNCAzNy4xMzgtNy40NzUgNDcuNzcxYy02LjAzNyAxMC42NzQtMzAuMzAyIDY0Ljk2LTI5LjgyMiA4OC4xNDcuNDggMjMuMTg2IDEzLjAzMiA1NC4yNDcgMTkuNTg4IDY4LjE1OCA2LjUxNiAxMy45MTIgMjEuNDI3IDM4LjA1NyAyMS45MDYgNTQuNzI3LjQ0IDE2LjcxIDEuMzYgOTkuNzQgMS4zNiA5OS43NHM1LjgzNiAzNy41MzcgNTMuODQ3IDM3LjUzN2M0Ny45NyAwIDUwLjA5LTM3LjI5NyA1MC4wOS0zNy4yOTdsNC42MzctODguMzg3IDEwLjI3NC00My4xMzQgMzAuMjYxLTY4LjE1OC0xLjgzOS00OS4xN3MtOS43OTQtNDEuMjk2LTE2Ljc5LTUxLjQ5Yy02Ljk5NS0xMC4xOTMtMTYuNzUtNDQuNTMyLTE3LjIyOS03NS41OTQtLjQ4LTMxLjA2LTkuMDc1LTYyLjE2Mi05LjA3NS02Mi4xNjJ6IiBmaWxsPSIjMzU4OGJkIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBjbGlwLXBhdGg9InVybCgjYSkiIGQ9Ik0xNTcuNjI0IDMuMTU4Yy05LjMxNCAxOS41MDgtMjkuMTQyIDMyLjk0LTUyLjIwOCAzMi45NFM2Mi4zMjIgMjIuNjY2IDUzLjAwOCAzLjE1OEw0Ny44OSA4Mi40N3MtMS40IDM3LjEzOC03LjQ3NSA0Ny43NzFjLTYuMDM3IDEwLjY3NC0zMC4zMDIgNjQuOTYtMjkuODIyIDg4LjE0Ny40OCAyMy4xODYgMTMuMDMyIDU0LjI0NyAxOS41ODggNjguMTU4IDYuNTE2IDEzLjkxMiAyMS40MjcgMzguMDU3IDIxLjkwNiA1NC43MjcuNDQgMTYuNzEgMS4zNiA5OS43NCAxLjM2IDk5Ljc0czUuODM2IDM3LjUzNyA1My44NDcgMzcuNTM3YzQ3Ljk3IDAgNTAuMDktMzcuMjk3IDUwLjA5LTM3LjI5N2w0LjYzNy04OC4zODcgMTAuMjc0LTQzLjEzNCAzMC4yNjEtNjguMTU4LTEuODM5LTQ5LjE3cy05Ljc5NC00MS4yOTYtMTYuNzktNTEuNDljLTYuOTk1LTEwLjE5My0xNi43NS00NC41MzItMTcuMjI5LTc1LjU5NC0uNDgtMzEuMDYtOS4wNzUtNjIuMTYyLTkuMDc1LTYyLjE2MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzQzNDM0IiBzdHJva2Utd2lkdGg9Ii44IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIvPjxwYXRoIGQ9Ik0yNi44MjQgMjA5LjgzM2gxNy44MjlsLTguOTk1IDE4LjU0OS04LjgzNC0xOC41NXoiIGZpbGw9IiMwOTczYjEiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0xMDkuNjE0IDIyMC4wMjdzLTIuMzE5LTUwLjc3LTQxLjAxNi01MC43N2MtMzEuMjQgMC0zMy41OCA0MC4zNTYtMzMuNTggNDAuMzU2IiBmaWxsPSJub25lIiBzdHJva2U9IiMwOTYyOTciIHN0cm9rZS13aWR0aD0iMS44MzkiIHN0cm9rZS1taXRlcmxpbWl0PSI4Ii8+PHBhdGggZD0iTTE3NC43MzQgMjA5Ljk5M2gxNy45OWwtOS4xNTUgMTguMzg5LTguODM1LTE4LjM5eiIgZmlsbD0iIzA5NzNiMSIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTEwOS42MTQgMjIwLjAyN3MyLjM1OC01MC42MSA0MC45NzUtNTAuNjFjMzEuMTQgMCAzMy40NiA0MC4xNzYgMzMuNDYgNDAuMTc2IiBmaWxsPSJub25lIiBzdHJva2U9IiMwOTYyOTciIHN0cm9rZS13aWR0aD0iMS44MzkiIHN0cm9rZS1taXRlcmxpbWl0PSI4Ii8+PHBhdGggY2xpcC1wYXRoPSJ1cmwoI2EpIiBkPSJNNTIuOTY4IDMuMTU4SDM4Ljc3NnY4MS4xOXMxLjYyIDI4Ljc2My02LjI5NiA0NS40NTNjLTguMzc1IDE3Ljg3LTI5LjMyMiA0OC4yNTEtMjguMTQzIDkyLjU0NC45MiAzNS4yNTkgMTYuMjkgNjEuNDYzIDIwLjcwOCA3MC45NzcgNC40MTcgOS43MzQgMTkuMzA4IDMyIDE3LjkwOSA3NS42MTQtMS4xNiA0My41OTQtMy43MTggNzIuMTE3LTMuNzE4IDcyLjExN2gxNC4xOTJzMy4wMTgtNjQuMjQxIDMuOTU3LTc3LjIzM2MuOTItMTIuOTczIDUuMTE3LTI3LjEyNCAxMC40NzQtMzMuNjIgNS4zMzctNi40OTYgMjYuMDQ0LTI1LjA0NSAyMS42MjctNzQuNDU1IDAgMC00LjE3OCA1My44MDctMjcuNDQ0IDU1LjkwNi0yMS4xODcgMS44MzktNDMuNzUzLTYyLjQwMi00My4yOTMtOTAuMDA1LjI0LTEwLjE5NC0uOTItMzcuNTc4IDIwLjI0Ny03MS42NTcgMTQuODkxLTI0LjEyNSAxNi4wNS00OC43MSAxNS41OS02My43ODEtLjY5OS0xNS4wOTEtMS42MTgtODMuMDUtMS42MTgtODMuMDV6IiBmaWxsPSIjZDFlM2VmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMTU3Ljk4NCAzLjE1OGgxNC4xOTJ2ODEuMTlzLTEuNiAyOC43ODMgNi4zMTYgNDUuNDUzYzguMzk1IDE3Ljg3IDI5LjM0MiA0OC4yNTEgMjguMTgzIDkyLjU0NC0uOTIgMzUuMjU5LTE2LjMxIDYxLjQ4My0yMC43NDggNzAuOTk3LTQuMzk3IDkuNzE0LTE5LjM0OCAzMS45OC0xNy45NDkgNzUuNTk0IDEuMiA0My42MTQgMy43NTggNzIuMTE3IDMuNzU4IDcyLjExN2gtMTQuMjMxcy0zLjAzOS02NC4yNDEtMy45NTgtNzcuMjMzYy0uOTItMTIuOTUzLTUuMTE3LTI3LjEwNC0xMC40NzQtMzMuNjItNS4zOTYtNi40NzYtMjYuMTQ0LTI1LjAyNS0yMS43MDctNzQuNDM1IDAgMCA0LjE5OCA1My44MDcgMjcuNTA0IDU1Ljg4NiAyMS4yMjcgMS44MzkgNDMuODEzLTYyLjQwMiA0My4zNzMtODkuOTg1LS4yNC0xMC4xOTQuOTItMzcuNTc4LTIwLjI2Ny03MS42NzctMTQuOTUxLTI0LjEwNS0xNi4xMS00OC42OS0xNS42My02My43NjEuNjc5LTE1LjExMSAxLjYzOC04My4wNyAxLjYzOC04My4wN3oiIGZpbGw9IiNkMWUzZWYiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGNsaXAtcGF0aD0idXJsKCNhKSIgZD0iTTUyLjk2OCAzLjE1OEgzOC43NzZ2ODEuMTlzMS42MiAyOC43NjMtNi4yOTYgNDUuNDUzYy04LjM3NSAxNy44Ny0yOS4zMjIgNDguMjUxLTI4LjE0MyA5Mi41NDQuOTIgMzUuMjU5IDE2LjI5IDYxLjQ2MyAyMC43MDggNzAuOTc3IDQuNDE3IDkuNzM0IDE5LjMwOCAzMiAxNy45MDkgNzUuNjE0LTEuMTYgNDMuNTk0LTMuNzE4IDcyLjExNy0zLjcxOCA3Mi4xMTdoMTQuMTkyczMuMDE4LTY0LjI0MSAzLjk1Ny03Ny4yMzNjLjkyLTEyLjk3MyA1LjExNy0yNy4xMjQgMTAuNDc0LTMzLjYyIDUuMzM3LTYuNDk2IDI2LjA0NC0yNS4wNDUgMjEuNjI3LTc0LjQ1NSAwIDAtNC4xNzggNTMuODA3LTI3LjQ0NCA1NS45MDYtMjEuMTg3IDEuODM5LTQzLjc1My02Mi40MDItNDMuMjkzLTkwLjAwNS4yNC0xMC4xOTQtLjkyLTM3LjU3OCAyMC4yNDctNzEuNjU3IDE0Ljg5MS0yNC4xMjUgMTYuMDUtNDguNzEgMTUuNTktNjMuNzgxLS42OTktMTUuMDkxLTEuNjE4LTgzLjA1LTEuNjE4LTgzLjA1bTEwNS4wMTYgMGgxNC4xOTJ2ODEuMTlzLTEuNiAyOC43ODMgNi4zMTYgNDUuNDUzYzguMzk1IDE3Ljg3IDI5LjM0MiA0OC4yNTEgMjguMTgzIDkyLjU0NC0uOTIgMzUuMjU5LTE2LjMxIDYxLjQ4My0yMC43NDggNzAuOTk3LTQuMzk3IDkuNzE0LTE5LjM0OCAzMS45OC0xNy45NDkgNzUuNTk0IDEuMiA0My42MTQgMy43NTggNzIuMTE3IDMuNzU4IDcyLjExN2gtMTQuMjMxcy0zLjAzOS02NC4yNDEtMy45NTgtNzcuMjMzYy0uOTItMTIuOTUzLTUuMTE3LTI3LjEwNC0xMC40NzQtMzMuNjItNS4zOTYtNi40NzYtMjYuMTQ0LTI1LjAyNS0yMS43MDctNzQuNDM1IDAgMCA0LjE5OCA1My44MDcgMjcuNTA0IDU1Ljg4NiAyMS4yMjcgMS44MzkgNDMuODEzLTYyLjQwMiA0My4zNzMtODkuOTg1LS4yNC0xMC4xOTQuOTItMzcuNTc4LTIwLjI2Ny03MS42NzctMTQuOTUxLTI0LjEwNS0xNi4xMS00OC42OS0xNS42My02My43NjEuNjc5LTE1LjExMSAxLjYzOC04My4wNyAxLjYzOC04My4wNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzQzNDM0IiBzdHJva2Utd2lkdGg9Ii44IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIvPjxwYXRoIGQ9Ik0xNzEuMjE2IDQ0MS4wNTNjLTkuOTk0IDI2LjY2NC0zNS42MTggNDUuNjUyLTY1LjkyIDQ1LjY1Mi0zMC4yNjEgMC01Ni4xMjYtMTguOTg4LTY2LjE2LTQ1LjY1MmgxMy43NTJjOS4zMTQgMTkuNDY4IDI5LjM0MiAzMy4xNCA1Mi40MDggMzMuMTQgMjMuMDY2IDAgNDIuODk0LTEzLjQzMiA1Mi4yMDktMzIuOWwxMy43MTEtLjI0eiIgZmlsbD0iI2ExYzVkZSIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggY2xpcC1wYXRoPSJ1cmwoI2EpIiBkPSJNMTcxLjIxNiA0NDEuMDUzYy05Ljk5NCAyNi42NjQtMzUuNjE4IDQ1LjY1Mi02NS45MiA0NS42NTItMzAuMjYxIDAtNTYuMTI2LTE4Ljk4OC02Ni4xNi00NS42NTJoMTMuNzUyYzkuMzE0IDE5LjQ2OCAyOS4zNDIgMzMuMTQgNTIuNDA4IDMzLjE0IDIzLjA2NiAwIDQyLjg5NC0xMy40MzIgNTIuMjA5LTMyLjlsMTMuNzExLS4yNHoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzM0MzQzNCIgc3Ryb2tlLXdpZHRoPSIuOCIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiLz48cGF0aCBkPSJNODcuNTg3IDI1OS4yMjNzLTYuMDM2IDUxLjI2OS0yNy4xODQgNDkuODljLTIzLjIyNi0xLjQtMzcuMTc3LTY3LjUyLTM5LjczNi03OC44OTMgMCAwIDIwLjIyOCA2NS45IDQwLjg5NiA2NC4yODIgMjAuNDQ3LTEuNjQgMjYuMDI0LTM1LjI4IDI2LjAyNC0zNS4yOHptMzUuNjU4LjAyczUuODM3IDUxLjI0OSAyNy4xMDQgNDkuODljMjMuMzQ2LTEuNCAzNy41NzctNjcuNTIgMzkuODk2LTc4LjkxMyAwIDAtMjAuMzA4IDY1LjkyLTQwLjgxNiA2NC4yODItMjAuNzg3LTEuNjQtMjYuMTg0LTM1LjI2LTI2LjE4NC0zNS4yNnoiIGZpbGw9IiMwOTczYjEiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik03OC42MzIgMjY1Ljk1OUg2MC42NDNsOS4xNzUtMTguNDY5IDguODE0IDE4LjQ2OXoiIGZpbGw9IiMwOTYyOTciIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik02OS4zNzggMjY1Ljc1OXMxLjYxOSAzMC42MjEtMTQuOTUxIDMwLjYyMS0yNC4wNDUtNDIuNjk0LTI0LjA0NS00Mi42OTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzA5NjI5NyIgc3Ryb2tlLXdpZHRoPSIxLjgzOSIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiLz48cGF0aCBkPSJNMTQyLjAzNCAyNjcuMzE4aC0xNy43NWw4Ljk5NS0xOC42MjkgOC43NTUgMTguNjI5eiIgZmlsbD0iIzA5NjI5NyIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTEzMy4xNiAyNjYuOTU4cy0xLjQgMzAuNTQyIDE0Ljg3IDMwLjU0MmMxNi40NyAwIDIzLjg2Ni00Mi42MTQgMjMuODY2LTQyLjYxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDk2Mjk3IiBzdHJva2Utd2lkdGg9IjEuODM5IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIvPjxwYXRoIGQ9Ik01Ni43NDYgODQuMDY5czMuOTM3IDM2LjM5OC0xNC40MTIgNjQuMjAxYzAgMCAyNC4xNDYtMjIuMjQ2IDE0LjQxMi02NC4yMDF6bTk3LjgtMi4zMTlzLTQuNjM3IDQwLjEzNiAxMS44NzMgNjIuODQyYzAgMC0yMS4xODctMTMuOTExLTExLjg3My02Mi44NDJ6bS05OC4xOCAzMjkuNjQtMS40IDI5LjkwM1M2Ni4zOCA0NjIuMTQgODQuMDcgNDY4LjM5NmMwIDAtMjEuNDA3LTEzLjg5MS0yNS44MjQtMjguMjYzLS40OC0xLjg1OS0xLjg4LTI4Ljc0Mi0xLjg4LTI4Ljc0MnptLS44Ni0zNzIuMjU0LS45NC0zMS4xOHM5LjUzNSAyMS42NDYgNDAuNjk2IDI5LjU2MWMwIDAtMTQuNDExLjk0LTI3LjY2My0xMC4yMzRDNTQuMzI3IDE2LjExIDU1Ljk2NiAxNi4xMSA1NS41MDYgMzkuMTM2eiIgZmlsbD0iIzZlYTdjZSIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTcyLjA3NiAzMjcuNzYxczM0LjQ2LTkuMjM0IDMzLjA2LTM5LjI1NmMwIDAtLjQ4IDM0LjE4IDMzLjk0IDM4LjU3NyAwIDAtMjkuNzQyIDQuODM3LTM0LjE4LTE3Ljk5IDAgMC01LjM1NiAyMS4yMjgtMzIuODIgMTguNjd6IiBmaWxsPSIjMDk3M2IxIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMTE4LjQ0OCA3OS45MTJIMTAwLjQ2bDkuMTc1LTE4LjMxIDguODE0IDE4LjMxeiIgZmlsbD0iIzA5NjI5NyIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0ibTEwOS42MTQgNzkuOTUyLjE2IDI3OC4zOSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDk2Mjk3IiBzdHJva2Utd2lkdGg9IjEuODM5IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIvPjxwYXRoIGQ9Ik0xMTMuODkxIDc3LjExM2gtMTcuODNsOS4wMTUtMTguMzA5IDguODE1IDE4LjMxeiIgZmlsbD0iI2U3NGEzZiIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0ibTEwNS40NTYgNzcuMTUzLjE2IDI3OC4xNTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U3NGEzZiIgc3Ryb2tlLXdpZHRoPSIxLjgzOSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIvPjxwYXRoIGQ9Ik0xNzAuNzM3IDIwNy4wMzVoMTcuODI5bC05LjE1NSAxOC4zMDgtOC42NzQtMTguMzA4eiIgZmlsbD0iI2U3NGEzZiIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTEwNS40NTYgMjE3LjA2OHMyLjU1OS01MC43NjkgNDAuOTc1LTUwLjc2OWMzMS4xNDEgMCAzMy40NiA0MC4zNzYgMzMuNDYgNDAuMzc2IiBmaWxsPSJub25lIiBzdHJva2U9IiNlNzRhM2YiIHN0cm9rZS13aWR0aD0iMS44MzkiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiLz48cGF0aCBkPSJNMjIuNjY2IDIwNy4wMzVoMTcuNjdsLTguOTk1IDE4LjMwOC04LjY3NS0xOC4zMDh6IiBmaWxsPSIjZTc0YTNmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMTA1LjQ1NiAyMTcuMDY4UzEwMy4xMzcgMTY2LjMgNjQuNDQxIDE2Ni4zYy0zMS4yNDEgMC0zMy41OCA0MC4zNTYtMzMuNTggNDAuMzU2IiBmaWxsPSJub25lIiBzdHJva2U9IiNlNzRhM2YiIHN0cm9rZS13aWR0aD0iMS44MzkiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiLz48cGF0aCBkPSJNODMuMjcgMjYzLjY0SDY1LjQ0bDkuMTc1LTE4LjMwOSA4LjY1NSAxOC4zMXoiIGZpbGw9IiNlNzRhM2YiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik03NC4yNTUgMjYzLjQyczEuMzggMzAuNTYyLTE0LjkxMSAzMC41NjJjLTE2LjU1IDAtMjQuMDA1LTQyLjYxNC0yNC4wMDUtNDIuNjE0IiBmaWxsPSJub25lIiBzdHJva2U9IiNlNzRhM2YiIHN0cm9rZS13aWR0aD0iMS44MzkiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiLz48cGF0aCBkPSJNMTQ2LjQzMSAyNjMuNjRoLTE3Ljk4OWw5LjE5NS0xOC4zMDkgOC43OTQgMTguMzF6IiBmaWxsPSIjZTc0YTNmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMTM3LjMxNyAyNjMuNDRzLTEuNCAzMC41NDIgMTQuOTUgMzAuNTQyYzE2LjU5IDAgMjQuMDI2LTQyLjYxNCAyNC4wMjYtNDIuNjE0IiBmaWxsPSJub25lIiBzdHJva2U9IiNlNzRhM2YiIHN0cm9rZS13aWR0aD0iMS44MzkiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLW1pdGVybGltaXQ9IjgiLz48cGF0aCBkPSJNNTYuNzA2IDkzLjI2M3MzLjQ5OCAxNi4yNy03LjI1NiA0Mi4yOTVjMCAwIDExLjY3My0yMy4yMjYgNy4yNTYtNDIuMjk1em05Ni42NDEgMy41MThzLTEuNjM5IDIwLjkwOCA4LjkxNSA0MC42MTZjMCAwLTExLjUxMy0xNi43MS04LjkxNS00MC42MTZ6TTU2LjI0NiA0MjguMWwtLjQ4IDEzLjIzM3MyLjA5OSA0Ljg3NyAxMS4zNTMgMTUuNTVjMCAwLTkuOTU0LTEyLjUzMi0xMC42NTMtMTUuNzctLjctMy4yNTgtLjIyLTEzLjAxMi0uMjItMTMuMDEyek01NC44MDcgOS4xNTRzNC4yMTcgMTAuMTk0IDE5LjY2OCAxOS42NjljMCAwLTEzLjExMi01Ljc3Ny0xOS42NjgtMTkuNjY5em0yOS42NjIgMjgwLjQ3cy04LjE1NSAyMy40MDYtMjIuMTQ3IDIzLjg4NmMtMTMuOTkxLjQ2LTIyLjg0Ni0xMy45MTItMzMuODItNDAuMzU2IDAgMCAxMS42NzQgNDMuODE0IDM0LjA2IDQxLjk3NSAxNy40OS0xLjQgMjEuOTA3LTI1LjUwNSAyMS45MDctMjUuNTA1em00Ni4xMzEgOS4yNzVzNi4zMTcgMTQuMTkxIDE5LjU0OSAxNC42MzFjMTMuMjcyLjQ4IDIzLjk4NS0yMS4xNDcgMzIuMS00MC4yMTYgMCAwLTExLjM5MyA0MS4xMzUtMzEuODYgNDEuODU1LTE0Ljg3MS40NC0xOS43ODgtMTYuMjctMTkuNzg4LTE2LjI3em0tNTkuNDgzIDI0LjIyNXMtMy43MTggMy45NTgtNi4yNzYgNy45MTVjLTIuNTU5IDMuNzE4LTcuNjc2IDguNTk1LTEwLjQ3NCA0Ny40MTIgMCAwLTEuNC0yOC41ODMgNC40MTctMzkuOTc2IDUuNTk3LTExLjYxMyAxMi4zMzMtMTUuMzUgMTIuMzMzLTE1LjM1em03MC4xMTcgMi4zMTlzNy43MTYgNy4xOTUgMTAuOTU0IDIwLjY2N2MzLjI3OCAxMy40MzIgMy43MTggMzMuMTQgMy43MTggMzMuMTRzMS4xNTktMjQuNTg1LTIuNzk5LTM2LjYxOGMtNC4xNTctMTIuMDcyLTExLjg3My0xNy4xOS0xMS44NzMtMTcuMTl6TTQwLjgxNSA0MzkuMjE0SDUxLjQ5bDEuMTYtMTIuMTUzcy0uNjggMTAuMDU0LTIuNzggMTAuOTk0Yy0xLjg1OC45MzktOS4wNTQgMS4xNTktOS4wNTQgMS4xNTl6bTExOC41NjguMTZoMTAuNzU0bC0uNzItMTMuNjcyczEuMTYgMTMuMjMyLTMuMjM4IDEzLjIzMmMtMy43NTcgMC02Ljc5Ni40NC02Ljc5Ni40NHoiIGZpbGw9IiNmZmYiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik00MC44MTUgNDQyLjg5MmgxMS40MzNzNi43NTYgMjEuMTg3IDM3LjQ5OCAzMC45NmMwIDAtMTcuNDcuMjItMzcuMjc4LTI1LjgyNC0zLjI1OC0zLjk1Ny40OC0zLjk1Ny0xMS42NTMtNS4xMzZ6IiBmaWxsPSIjZDFlM2VmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4=", "lung": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZlcnNpb249IjEuMCIgdmlld0JveD0iMCAwIDE3NC45MTcgNDA4LjA3NiI+PGRlZnM+PGNsaXBQYXRoIGNsaXBQYXRoVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBpZD0iYSI+PHBhdGggZD0iTTEuODM5IDUuNTk3aDE3NC42OTR2NDA4LjM5MkgxLjgzOXoiLz48L2NsaXBQYXRoPjwvZGVmcz48cGF0aCBkPSJNMTAwLjE4IDE5My4xODNjLTI3LjIyNC00Ljg3Ny01Ni41NjYtMTUuMzEtNzMuMDc2LTE4LjIyOS01LjgxNy0uOTgtMTMuNDUyLTIuMjk5LTE0LjA3Mi0uOTgtLjkyIDEuMyAyLjQ1OSA5LjQzNSAxMC43MTQgMTkuODY5IDEwLjY5MyAxMy42NzEgMjcuODIzIDMxLjI4IDM4LjgxNiA0My4zMzMgMTEuOTMzIDEzLjAzMiA0MC45NzUgNDEuMzc1IDY0LjUyMSA3OS4xNTIgNy42MzUgMTIuMDUzIDEzLjEzMiAyMC41MjggMTcuNDEgMjEuNTA3LjYyLjMyLjYyIDAgLjYyIDBsLS4zLS4zMnMtMy45NzgtMTEuNDEzLTE3LjQzLTMzLjU2Yy0xMi44NTItMjEuMTY2LTc0LjU5NS05Ni40NC05Ni45MjEtMTExLjc1MS0xLjIyLS42NC0yLjE0LTEuMy0zLjA1OS0xLjk0LjkyLjMyIDEuODQuOTggMy4wNTkgMS45NCAxMC43MTMgNi4xOTYgMjUuOTg0IDExLjA5MyA0Ni4xNzIgMTUuNjUgMzYuNjc3IDguMTM1IDg3Ljc0NiAxMi4zNzMgOTYuOSA1Ljg1NnYtLjMyYy0zLjk1Ny0xMC4wOTMtMzIuNy0xMi43MTItNzMuMzU1LTIwLjIwN3oiIGZpbGw9IiNjZDk0YTgiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0xNzMuNTM1IDIxMy43MXYtLjMyYy0zLjk3OC0xMC4xMTMtMzIuNzItMTIuNzMyLTczLjQxNi0yMC4yMjctMjAuMTg3LTMuNTk4LTQzLjQ1My0xMC43NzQtNjEuMTgzLTE1LjY3LTE0LjA5MS0zLjkxOC0yNS40MDQtNS41NTctMjYuMDI0LTMuNTk4IDEuNTQgMy41OTcgOS40OTQgMTMuNzExIDE0LjY5MSAxNi4zM2gtLjNsLjMuMzJjLjMgMCAuNjIuMzIuOTIuMzJsMS44MzkgMS4zMTljMTAuNzEzIDYuMTk2IDI2LjAwNCAxMS4wOTMgNDYuMTkyIDE1LjY1IDM2LjcxNyA4LjE1NSA4Ny44MDYgMTIuMzkzIDk2Ljk4IDUuODc2eiIgZmlsbD0iI2Y2ZWNlZiIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTEyLjkxMiAxNzMuOTM1YzQuMzE4IDYuNTU2IDkuNTM0IDE0LjA5MSAxNS42NyAxNy4wMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9Ii42NCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTE3NC45NzQgMjE4LjkyN2MwLTEuNjM5LTEuMjItMy41NzgtMS41Mi01LjUzNnYuMzJjLTkuMTc0IDYuNTE2LTYwLjE2MyAyLjI3OC05Ni44Mi01Ljg1Ny0yMi4yODctNC44OTctMzguNDc3LTEwLjc1My00OS4xNy0xNy42MSAwIC4zNCAwIDAgMCAwIDE4Ljk0OCA5LjQ1NSA4Ni40MjcgOTEuNTY1IDk5Ljg3OSAxMTMuNzEyIDEzLjQzMiAyMi4xNjYgMTcuMzkgMzMuNTYgMTcuMzkgMzMuNTZsLjMyLjMyYzEuNTE4LS42NCAzLjA1Ny0uNjQgNC41NzYtMS4zIDEwLjk5NC02LjUxNiAxOS4yNDktMTQuMDExIDIxLjY4Ny0yNC43NjUgNS4xNzctMjMuNzY2IDQuMjc4LTc5LjgxMiAzLjY1OC05Mi44NDR6IiBmaWxsPSIjZTFjMGNhIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMTcxLjU3NiAyMTguNjI3YzEuODM5IDYuMTk3IDEuNTQgNDQuNjczLS4zIDY2LjItMS44MTkgMjEuNTI3LTIuMTM5IDM3LjQ5OC0yMi41NDYgNDguNTktMy4wNTggMS42Mi0zLjY1OC01LjIxNi0xMC4zNzQtMTUuMDEgNS40OTcgNS4yMTcgMTEuNTkzIDQuODk3IDE3Ljk5LTEuMyA2LjM5NS02LjE5NSAxOS4xODgtNjIuOTIxIDE1LjIzLTk4LjQ4eiIgZmlsbD0iI2Q3YWFiOCIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTI3LjQ2MyAxOTAuMjQ1YzE4LjkyOSA5LjQ1NCA4Ni4zODggOTEuNTY0IDk5LjgyIDExMy43MSAxMy40MzIgMjIuMTY3IDE3LjM5IDMzLjU2IDE3LjM5IDMzLjU2IiBmaWxsPSJub25lIiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iLjY0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBjbGlwLXBhdGg9InVybCgjYSkiIGQ9Ik0xNzQuOTc0IDIxOC45MjdjMC0xLjYzOS0xLjIyLTMuNTc4LTEuNTItNS41MzZ2LjMyczAgMCAwIDBjLTkuMTc0IDYuNTE2LTYwLjE2MyAyLjI3OC05Ni44Mi01Ljg1Ny0yMi4yODctNC44OTctMzguNDc3LTEwLjc1My00OS4xNy0xNy42MSAwIDAgMCAwIDAgMCAwIC4zNCAwIDAgMCAwIDE4Ljk0OCA5LjQ1NSA4Ni40MjcgOTEuNTY1IDk5Ljg3OSAxMTMuNzEyIDEzLjQzMiAyMi4xNjYgMTcuMzkgMzMuNTYgMTcuMzkgMzMuNTZsLjMyLjMyczAgMCAwIDAgMCAwIDAgMGMxLjUxOC0uNjQgMy4wNTctLjY0IDQuNTc2LTEuMyAxMC45OTQtNi41MTYgMTkuMjQ5LTE0LjAxMSAyMS42ODctMjQuNzY1IDUuMTc3LTIzLjc2NiA0LjI3OC03OS44MTIgMy42NTgtOTIuODQ0IiBmaWxsPSJub25lIiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iLjY0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJtMTczLjY5NSAyMTMuNzUtLjE2LS4zMmMwIC4zMi4xNi42NC4xNi45NnYtLjY0IiBmaWxsPSJub25lIiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iLjY0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNNTMuOTI3IDIwMy45MTZjMTEuNjMzIDUuNTU3IDcwLjY1NyAxOC4yNyAxMTMuNDUyIDE0LjY3Mi0xNC42NzIgNi41MTYtODUuMDA5IDEuNjM5LTExMy40NTItMTQuNjcyeiIgZmlsbD0iI2ZmZiIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTg2Ljg2NyAyMjkuNzRjMy43MzggMCA4LjM5NSAxLjk2IDEwLjg3NCA0Ljg3OG0tMi41NTktMi43MThjLjMyLTEuNiAyLjEzOS0yLjU1OSAzLjM1OC0zLjUxOG0zOS4xNzcgMTkuMTg4YzEuMjM5IDIuNjE4IDIuMTU4IDQuODk3IDEuNTU5IDcuODM1bS41OTktMi42MzhjMS4yLTEuMjIgMi42NzktMS44NCA0LjE1OC0xLjUybTEyLjIzMiAxNi4zMTFjLjg4IDQuMjE3LjMgOC40MzUtMi4wNzggMTEuNjczbTIuNDc4LTMuNjc4YzEuNTQtLjMyIDIuNzc4IDAgMy45OTguNjRtLTI5LjUwMy02Ljc5NmMuNjQgMy44OTcgMy4xMzkgNi40NzYgNi44NzYgNi43OTZtLTMuOTk3LTEuMTJjLTEuMjguNjQtMi4yMzkgMi4yMzktMi44NzggMy41MThtLTIyLjc4Ny0yNC41NDVjLjkgMS4zNiAxLjIgMi42OTguOSA0LjcxN20uNjE5LTIuMzk4Yy4zMi0xIDEuMjQtMiAyLjQ3OS0ybTM2LjkxOCA0Mi44NTVjLS4zIDIuMjc4IDAgNC44NzcgMi4wOTggNi4xNTZtLTEuODM4LTEuNjc5Yy0xLjIyLjM0LTEuODQgMS0xLjg0IDIuMzE5IiBmaWxsPSJub25lIiBzdHJva2U9IiM4YjU3NmMiIHN0cm9rZS13aWR0aD0iLjY0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNODkuNDY2IDIyOC40MjJjLS43MiAxLjYzOS0uNzIgMy41NzctLjM2IDUuMTk2bTM5Ljc3NiAzOS44MTZjMS44MzkgMCAzLjk5Ny0uNjYgNS41MTctMS45OTltMi42MzgtMjEuMTA3YzEuMjQuMzIgMi40NTggMCAzLjM1OC0xLjM1OW0xOC4xNDkgMjEuODI3Yy0xLjgzOSAwLTMuNjc4LjY0LTUuNTE3IDEuNTk5IiBmaWxsPSJub25lIiBzdHJva2U9IiNlMWMwY2EiIHN0cm9rZS13aWR0aD0iMS4xOTkiIHN0cm9rZS1taXRlcmxpbWl0PSI4Ii8+PHBhdGggZD0iTTEyOS40MDIgMjI0Ljc4NGMwIDMuODk3LTIuNDM5IDUuODM2LTUuNTE3IDcuNDM1bTMuMTE4LS45NTljLjYgMS4zNTkgMS41IDIuMzU4IDIuMzk5IDMuMzU4bTMzLjEgMy40MzhjMS41MTkgMi4yOTggMy4wMzggNC41NzcgMi43MzggNy41MTVtLjYyLTIuNzk4Yy4zMi0yLjAzOSAxLjgzOC0yLjcxOCAzLjY3Ny0yLjM3OSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGI1NzZjIiBzdHJva2Utd2lkdGg9Ii42NCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiLz48cGF0aCBkPSJNMTI2LjA4NCAyMjUuNDYzYy45MTkgMi4zMzkgMi43MTggMy45OTggNS4xMTYgMy45OThtMjkuNjYzIDE0LjYzMWMxLjUzOS0xLjYzOSAyLjc3OC0zLjYxOCAzLjk5Ny01LjI3NyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTFjMGNhIiBzdHJva2Utd2lkdGg9IjEuMTk5IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIvPjxwYXRoIGQ9Ik02NS4yIDIyMi4yMjVjMTQuOTcxIDEwLjA5NCA1Ny4xNDYgNjMuNDgyIDczLjYzNiA5Mi4xMDUtMTEuNTkzLTE1LjYxMS01OC42NjUtODAuMDUyLTczLjYzNi05Mi4xMDV6IiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMTAwLjE4IDE5My4xNDNjLTMwLjg4Mi01LjUzNy03NS40OTUtMjIuMTY3LTg3LjEwOC0xOS4yMjgtMi4xNTkuNjYgNy45MzUgMTYuMjkgMTEuNjEzIDIwLjg2NyA4LjI1NSAxMC40MTQgMjQuNzQ1IDI3LjcwMyAzNy44OTcgNDIuMzU0IDExLjkxMyAxMy4wMzIgNDAuOTU1IDQxLjM5NSA2NC41MDEgNzkuMTkyIDcuNjM1IDEyLjA1MyAxMy4xNTIgMjAuNTI4IDE3LjQzIDIxLjUwNy42LjMyLjYgMCAuNiAwbC0uMy0uMzJzLTMuOTc4LTExLjQxMy0xNy40My0zMy41NmMtMTIuODMyLTIxLjE4Ni03NC41NzUtOTYuNDYtOTYuOTAxLTExMS43OTEtMS4yMi0uNjQtMi4xNC0xLjMtMy4wNTktMS45Ni45Mi4zNCAxLjg0Ljk4IDMuMDU5IDEuOTYgMTAuNjkzIDYuMTk2IDI1Ljk4NCAxMS4wOTMgNDYuMTcyIDE1LjY1IDM2LjY3NyA4LjEzNSA4Ny43MjYgMTIuMzczIDk2Ljg4IDUuODU3IDAgMCAwIDAgMCAwdi0uMzJjLTMuOTU3LTEwLjA5NC0zMi43LTEyLjcxMy03My4zNTUtMjAuMjA4IiBmaWxsPSJub25lIiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iLjY0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIvPjxwYXRoIGQ9Ik0zNy43NzcgMTc5LjEzMWM3Ljk1NS42NiAyNy4xODQgNy4xOTYgMzguMTc3IDEwLjQ1NCAxMC45OTMgMy4yNTggMjAuMTY4IDUuMjE3IDM0LjUyIDcuMTc2IDE0LjY1IDEuOTU5IDMyLjY4IDUuMjE3IDM1LjcxNyA2LjUxNi05LjE1NC0uOTgtMzEuNzYtMy44OTgtNDUuNzkyLTUuNTM3LTEzLjc1Mi0xLjYzOS0zMS43Ni03LjUxNS0zOS4zOTYtMTEuMDkzLTcuMzM2LTMuMjU4LTE5LjU0OC03LjE3Ni0yMy4yMjYtNy41MTZ6IiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMTQuODMxIDE0Ny4wN2M1LjM5NyAxNC4zNzIgMjUuNzg0IDI0LjU4NiA2MS43NDMgMzIuNTgxIDM2LjI1OCA3Ljk3NSA4Ni4zMDcgMTIuMTEzIDk1LjI4MiA1LjczN3oiIGZpbGw9IiNlMWMwY2EiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGNsaXAtcGF0aD0idXJsKCNhKSIgZD0iTTE3Mi44NzUgMTc3LjA3M2MtMS40OTktMjQuMjY2IDIuOTc4LTQ1LjAzMy0xNC4zOTEtNzguMjUzLTkuODk0LTE3LjU3LTExLjM5My0yOC40MjMtMTQuMzkxLTM4LjYzNi0yLjk5OS0xMC44NzQtNi41OTYtMzguOTc3LTI4Ljc4My01MC43OS01Ljk5Ni0zLjE5OC0zMC44Ni04LjYzNC00Ny42NSAxNy44OUM0OS4wNyA1NC40MjYgMjYuODg0IDk5LjQ2IDE1LjE5MSAxNDAuOTkzYy0uNiAxLjkyLS4zIDMuNDk4LS42IDUuNDE3bC4zLjY0YzUuMzk3IDE0LjM3MSAyNS43ODQgMjQuNjA1IDYxLjc2MyAzMi41OCAzNi4yNTggNy45OTUgODYuMzI3IDEyLjEzMyA5NS4zMjIgNS43NTd2LS4zMmMwLTIuMjM5LjktMy44MzguOS03Ljk5NXoiIGZpbGw9IiNlMWMwY2EiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik0xNy4yMyAxNDcuNzFjMi45OTggOC45MzUgMTQuMzkgMTUuNjMxIDMzLjg3OSAyMi42NjcgMTkuNDg4IDcuMDE1IDU2Ljk2NSAxMy43MzEgNzcuNjUzIDE1LjAxIDIwLjk4NyAxLjU4IDM4LjM3Ny42NCA0MS4wNTUtMS45MTggMi42OTgtMi4yMzkuMy05LjU3NC42LTE2LjkzLjYtNy4zMzUgMi4zOTgtMzQuNzk5LTEyLjI3My02My41MjEtMTQuOTktMjguNzQzLTE3LjA5LTQ1LjM1My0yMC4wODgtNTguNDQ1IDEuNSAxMy4wOTIgOC42OTUgNDAuODc1IDEzLjE5MiA1Ni44NDYgNC40OTggMTUuOTUgNi4yOTcgMzUuNzU4IDUuNjk3IDUyLjk4Ny0uNiAxNy41Ny0xMy43OTIgMjIuMzQ3LTMyLjM4IDIyLjk4Ni0xOS40ODkuMzItNDguNTcxLTEuOTE4LTc0LjM1NS0xMC44NTMtMjUuNzg1LTguOTM1LTI5LjY4Mi0xNC4wNTEtMzIuOTgtMTguODI5eiIgZmlsbD0iI2Q3YWFiOCIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTE0LjgzMSAxNDcuMDdjNS4zOTcgMTQuMzcyIDI1Ljc4NCAyNC41ODYgNjEuNzQzIDMyLjU4MSAzNi4yNTggNy45NzUgODYuMzA3IDEyLjExMyA5NS4yODIgNS43MzciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiLz48cGF0aCBjbGlwLXBhdGg9InVybCgjYSkiIGQ9Ik0xNzIuODc1IDE3Ny4wNzNjLTEuNDk5LTI0LjI2NiAyLjk3OC00NS4wMzMtMTQuMzkxLTc4LjI1My05Ljg5NC0xNy41Ny0xMS4zOTMtMjguNDIzLTE0LjM5MS0zOC42MzYtMi45OTktMTAuODc0LTYuNTk2LTM4Ljk3Ny0yOC43ODMtNTAuNzktNS45OTYtMy4xOTgtMzAuODYtOC42MzQtNDcuNjUgMTcuODlDNDkuMDcgNTQuNDI2IDI2Ljg4NCA5OS40NiAxNS4xOTEgMTQwLjk5M2MtLjYgMS45Mi0uMyAzLjQ5OC0uNiA1LjQxNyAwIDAgMCAwIDAgMGwuMy42NGM1LjM5NyAxNC4zNzEgMjUuNzg0IDI0LjYwNSA2MS43NjMgMzIuNTggMzYuMjU4IDcuOTk1IDg2LjMyNyAxMi4xMzMgOTUuMzIyIDUuNzU3IDAgMCAwIDAgMCAwdi0uMzJjMC0yLjIzOS45LTMuODM4LjktNy45OTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiLz48cGF0aCBkPSJNMjguNjYzIDExMy41NzFDNDIuMTM0IDc2LjgzMyA2OS4zNzggMjMuNDY2IDgwLjE1IDE2Ljc1Yy03LjQ3NSAxMC4yMzQtNDMuMzkzIDc1LjczNC01MS40ODggOTYuODIxeiIgZmlsbD0iI2ZmZiIgZmlsbC1ydWxlPSJldmVub2RkIi8+PHBhdGggZD0iTTMwLjcyMSAxMTcuNjQ5Yy0uMyA2LjcxNiAxLjUgMTQuMzkxIDYuODk2IDE3LjkwOSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGI1NzZjIiBzdHJva2Utd2lkdGg9Ii44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIvPjxwYXRoIGQ9Ik0zMi44MiAxMzAuNDRjLTIuMzk4IDAtNC43OTcuMzItNy4xOTYuNjRtMzEuNTQxLTUyLjM2OGMtLjYgNS43NTcgMy4yNzggMTAuMjM0IDcuMTU2IDEzLjc1MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGI1NzZjIiBzdHJva2Utd2lkdGg9Ii44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIvPjxwYXRoIGQ9Ik01NC45NjcgOTEuNTA1YzEuMTk5LTEuNiAyLjk5OC0yLjg3OSA0Ljc5Ny0zLjgzOG00MS40MTUtNDMuNDk0YzIuMTU4IDUuMTU3LjYyIDEwLjI5NCAwIDE1Ljc1bTEuMTk5LTYuNzE1YzIuNDE4LS42OCA1LjExNy0xLjAyIDcuNTE1LTEuMzZNODEuOTkgODQuNzg5YzQuMTU4IDQuMTU3IDIuOTc5IDEwLjg3MyAyLjA3OSAxNi4zMW0xLjUxOS03LjQzNmg1Ljc1N20yNy41MjMtMjIuNjI2Yy0uOSA2LjA3NiAxLjc5OSAxMS41MTMgNi44NTYgMTQuMzkxbS00Ljc5Ny0yLjg3OGMtMS43Ni42NC0zLjIxOCAxLjg3OS00LjM5OCAzLjQzOE03NS45NzQgNDUuNTMyYy0uNjIgNC40NTggMS44MTkgNy42MTYgNS4xMzcgOS44MzQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzhiNTc2YyIgc3Ryb2tlLXdpZHRoPSIuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiLz48cGF0aCBkPSJNNzUuMzU0IDU0LjQwN2MuNjItMS41OTkgMS44NC0xLjkxOSAzLjM1OC0xLjU5OW0tMTUuOTEgNjMuMjQyYzIuMzk4IDMuNTE4IDIuMzk4IDEwLjU1My45IDE0LjM5bTEuMjU4LTUuMTE2YzEuOC0uNjQgMy41NzgtLjY0IDUuMzU3IDBNODIuOTUgMTY2LjVjMy44OTcgMS4yNzggOC4zNzUtMS42IDExLjM1My0zLjgzOW0tNC4xNTggMy41OTljLjI4IDEuNTc4LjU0IDIuODM4LjggNC4zOTdNNTkuNzY0IDE0OC42N2MtLjggMy4xOTgtLjggNy4zNTUgMCAxMC41NTRtLS41Ni0yLjU1OWE2Ljg2NiA2Ljg2NiAwIDAgMC0zLjU5OCAwbTQwLjQzNi0zNy43MzdjMi4wOTkgMy44MTggMi4wOTkgOS4yMzQtLjMgMTMuMDMybTIuMTU4LTUuMzU3YzEuODItLjI4IDMuNjM4LS41NiA1LjQzNy0uMjhtMTcuOTg5LTE0LjQzMWMyLjk5OS45NiA2Ljg3Ni0uMzIgNy43NTYtMy44MzciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzhiNTc2YyIgc3Ryb2tlLXdpZHRoPSIuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiLz48cGF0aCBkPSJNMTI2LjEyNCAxMTEuNjUyYy4zIDEuOSAxLjE3OSAzLjQ3OCAxLjc1OCA1LjM1N20tMTAuNzkzIDM1LjE3OWMyLjk5OCAyLjU1OCA3LjQ5NS42NCAxMC40NzQtLjY0IiBmaWxsPSJub25lIiBzdHJva2U9IiM4YjU3NmMiIHN0cm9rZS13aWR0aD0iLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLW1pdGVybGltaXQ9IjEwIi8+PHBhdGggZD0iTTEyMi4xMjYgMTUzLjQ2N2MuNCAxLjU5OS40IDMuNTE4LjQgNS4xMTdtMjQuNTA0LTM1LjgxOGMuNiAzLjE5OCAwIDYuNzE2LS41OTkgOS45MTRtLjg3OS0zLjE5OGg0LjU1OG0tOC4xNTUgMzMuNDk5YzIuMzk4IDEuOTIgNS45OTYtLjMyIDguMzk1LTEuMjc5bS0zLjU5OCAyLjYzOHYzLjQzOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGI1NzZjIiBzdHJva2Utd2lkdGg9Ii44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIvPjxwYXRoIGQ9Ik01My41NjggODAuOTExYzIuMDk4LS4zMiA0Ljc5Ny0xLjYgNi44NzUtLjk2LS41OCAyLjU1OS00LjQ3NyAzLjUxOC02Ljg3NSA0LjE1OG0yNi4wNDQgNC44NTdjMi4xMTgtMS44OTkgNi4wNTYtMi4yMTkgOC4xNzUtMS4yNi0xLjUgMy4xNTktNi4wNTcgNC4wOTgtOC43OTUgNS4wMzhtMzUuMTc4LTE5Ljc0OGMyLjQuNjQgNi44NTcgMCA3LjQzNiAyLjUzOC0xLjQ3OSAyLjE5OS00Ljc1NyAyLjE5OS03LjEzNSAyLjgxOW04Ljg5NCA5LjAzNGMuMy0yLjIzOSAxLjgtNC4xNTcgMy41OTgtNS43NTZtLTEwLjc5My4zMTljLjkxOSAyLjg3OSAzLjYzNyA0LjQ3OCA1LjQzNiA2LjM5Nm00Ljc5NyAyMC43MDhjMS43OC4zNCAzLjI1OC42OCA0LjcxOCAxLjY3OW0tMzcuMzM4IDEyLjcxMmMxLjgtLjk2IDQuNzk3LTQuNzk3IDcuMTc2LTMuODM3IDQuMTc3IDEuNTk5LTIuMzc5IDUuMTE2LTMuODc4IDUuNzU2bS0zNy4yNzctNS4zNzdjMS44MTktLjY0IDUuMTU3LTMuNDk4IDYuNjc2LTEuODk5IDMuMzE4IDIuODM5LTQuNTM4IDUuMzc3LTUuNzU3IDUuNjc3bS0zMi42LTMuNTE4YzEuNzk5LS4zMiA3LjE5Ni0yLjU1OCA3LjQ5NS4zMi42IDIuODc4LTcuNDk1IDQuMTU3LTguOTk0IDQuNzk3bTYuNzk2IDEwLjg3M2MxLjUxOS0xLjU1OSAyLjczOC0zLjEzOCA0LjIzNy00LjM5N20tOS44MzQtMy44MzhjLjY0IDIuMjIgMCA0LjQzOC4zMiA2LjYzNk03Mi45OTYgNDguNDNjMi43MTguOTggNS43NTYtMi4yNzggOC4xNTUtMi42MThtLTIuOTU4IDEwLjMxNGMxLjQ3OS0xLjYxOSAyLjY1OC0zLjIzOCAzLjgzNy01LjE5N20tMjUuMTg0IDk5LjdjMi4zOTguNjQgNC43OTcuOTYgNy4xOTUgMS4yNzltMjAuMzg4IDEwLjc5M2MwIDIuNTU5LjYgNS4xMTcgMS4yIDcuNjc2bTYuNTU1LTguODc1Yy4zMiAxLjkxOSAxLjU2IDMuODM4IDIuMTU5IDUuNzU3bS02LjU1NiAyLjg3OGMxLjQ5OS0uMzIgMy4yOTgtMS4zNCA0Ljc5Ny0xLjY4bTI3LjU4My0xNi41NDljLS45MiAxLjU5OS0xLjUxOSAzLjE5OC0xLjgzOSA0Ljc5N203LjQ3Ni03LjAzNWMtLjYgMi41NTggMCA1LjExNiAxLjc5OSA2LjcxNW0xNy4zNDktMzAuMDYyYzEuNS0uMzIgMi45NzgtLjMyIDQuMTU4LS45NTltLjk2IDEuMjc5Yy0xLjIgMi4yMzktMS4yIDQuNDc4LTEuMiA3LjAzNk05OC44MiA0Ny40MTFjMS4yMi0xLjU5OSAzLjk1OC0yLjU1OCA1Ljc1Ny0uOTYtLjkgMi41Ni0zLjYxOCAzLjUxOS01Ljc1NyA0LjE1OG04LjE1NS0uOTU5Yy0uNjQgMi4yNzktLjk2IDQuNTM3LS45NiA2LjQ3Nm0tNi44NzUuOTU5YzEuNDk5Ljk2IDMuMjc4LjY0IDUuMDM3LjMyTTYwLjQ0MyA5MS43ODRjLjMyLTEuNTU5IDEuODQtMi40NzggMy4zNTgtMy4xMThNODIuMzUgOTcuOTRjMS41LjMyIDIuNjk4LjY0IDMuNTk4IDEuMjhtMi4xMTktMi44NzhjLS45Mi0xLjkyIDAtMy44MzguOTItNS43NTdtLTI3LjAyNSAzNy40MTdjMS44Ljk2IDMuODk4Ljk2IDUuNjc3LjY0bTc4LjI3MyAzNi4yOThjLS45Ni0xLjI0LS45Ni0yLjE3OSAwLTMuNDM4IiBmaWxsPSJub25lIiBzdHJva2U9IiNlMWMwY2EiIHN0cm9rZS13aWR0aD0iMS42NzkiIHN0cm9rZS1taXRlcmxpbWl0PSI4Ii8+PHBhdGggZD0iTTg4Ljk0NiAyMS4yMjdjLjYgMi44NzggMy44NzggNC43OTcgNi41NTYgNC40NzdtLTMuOTE4LS4zMTljLS42Ljk1OS0xLjIxOSAyLjIzOC0xLjgzOCAzLjUxNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGI1NzZjIiBzdHJva2Utd2lkdGg9Ii44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIvPjxwYXRoIGQ9Ik04NC45ODggMjUuNjY0YzIuMS0uOTE5IDMuODk4LTIuMTc4IDUuOTk3LTMuMTE4IiBmaWxsPSJub25lIiBzdHJva2U9IiNlMWMwY2EiIHN0cm9rZS13aWR0aD0iMS42NzkiIHN0cm9rZS1taXRlcmxpbWl0PSI4Ii8+PHBhdGggZD0iTTEyMy4wODUgMjcuOTQzYy0uMyAzLjc5OC0yLjcxOCA1LjY5Ny01Ljc1NiA3LjU5NW0zLjAzOC0xLjI3OGMuOTIgMS4zMTggMS41MiAyLjYxOCAyLjcxOCAzLjU5NyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGI1NzZjIiBzdHJva2Utd2lkdGg9Ii44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIvPjxwYXRoIGQ9Ik0xMTkuNTI4IDI4Ljk0MmMuODk5IDIuMjQgMi42NzggMy44MzggNS4wMzcgMy41MThtLTMwLjIyMiA5Ni43NDJjMi4zOTggMCA0LjE5NyAxLjI3OSA1Ljk5NiAxLjkxOSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTFjMGNhIiBzdHJva2Utd2lkdGg9IjEuNjc5IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIvPjxwYXRoIGNsaXAtcGF0aD0idXJsKCNhKSIgZD0iTTE0MS43MTQgMzY3LjQzN3MtMy44OTgtMTEuMTczLTE3LjA5LTMyLjljLTEzLjE5Mi0yMS43MDctNzkuNDcxLTEwMi4xNzgtOTguMzYtMTExLjQ1MiAwIDAgMCAuMzIgMCAwLTYuODk2LTQuNDU4LTExLjY5My0xMC4yMTQtMTQuMDkxLTE1Ljk3LS4zIDEuMjc5LTEuMiAyLjU1OC0xLjUgMy44MzctMi4zOTggOC42MzUtMy44OTcgMTcuMjUtNC43OTcgMjUuMjI1LTEuMTk5IDguMzE1LTMuMDE4IDI1Ljg2NC0zLjAxOCA0MS41MTUtLjkgNTQuNjA3IDEwLjUxNCAxMDEuNTU4IDI0LjYwNSAxMjIuOTQ1IDE3Ljk5IDI2LjUwNCAzOC45NzcgMi44NzggNjQuNzgxLTkuODk0IDE0Ljk5MS03LjY1NSAzMS43OC0xMy40MTIgNDUuNTcyLTE5Ljc4OCAxLjUtLjY0IDIuNjk5LTIuMjM4IDMuODk4LTMuMTk4di0uMzJ6IiBmaWxsPSIjZTFjMGNhIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNMTkuNzA4IDM3Ni40MTJjNC4xOTggMTcuODg5IDE1Ljg5IDM1LjQ3OCAyOS4zODIgMzIuMjggMTMuNDkyLTMuNTE4IDMxLjQ4MS0xNy45MDkgNDcuMDcyLTIzLjk2NSAxNS44OS02LjM5NiAzNy40NzctMTQuMDcyIDQwLjQ3NS0xNy44OSAxLjgtMi4yMzgtMy44OTctMTYuNjMtMTYuNDktMzUuMTU4LTEwLjE5NC0xNS4wMS0yNS4xODUtMzEuOTQtNDAuNDc1LTUxLjEwOS0zNC43OC00My4xNTQtMzUuOTc4LTQwLjI3Ni0zNS45NzgtNDAuMjc2IDExLjk5MiAxMi4xNTMgMjguNzgyIDM3LjA3OCAzNi44NzcgNDkuNTMgOC4wOTUgMTIuNDczIDQwLjQ3NiA0OC44OSA0Ny4wNzIgNjMuNTgyIDYuODk1IDE1LjAzLTcuNDk2IDE1Ljk3LTIwLjk4OCAyMC43NjctMTMuNDkxIDQuNzk3LTM0LjE3OSAxNi42MS00NC42NzMgMjMuMzI2LTEwLjE5MyA2LjcxNi0yNy4yODMgMTUuOTctNDIuMjc0LTIxLjA4N3oiIGZpbGw9IiNkN2FhYjgiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGNsaXAtcGF0aD0idXJsKCNhKSIgZD0iTTE0MS43MTQgMzY3LjQzN3MtMy44OTgtMTEuMTczLTE3LjA5LTMyLjljLTEzLjE5Mi0yMS43MDctNzkuNDcxLTEwMi4xNzgtOTguMzYtMTExLjQ1MiAwIDAgMCAuMzIgMCAwLTYuODk2LTQuNDU4LTExLjY5My0xMC4yMTQtMTQuMDkxLTE1Ljk3IDAgMCAwIDAgMCAwLS4zIDAtMS4yIDIuNTU4LTEuNSAzLjgzNy0yLjM5OCA4LjYzNS0zLjg5NyAxNy4yNS00Ljc5NyAyNS4yMjUtMS4xOTkgOC4zMTUtMy4wMTggMjUuODY0LTMuMDE4IDQxLjUxNS0uOSA1NC42MDcgMTAuNTE0IDEwMS41NTggMjQuNjA1IDEyMi45NDUgMTcuOTkgMjYuNTA0IDM4Ljk3NyAyLjg3OCA2NC43ODEtOS44OTQgMTQuOTkxLTcuNjU1IDMxLjc4LTEzLjQxMiA0NS41NzItMTkuNzg4IDEuNS0uNjQgMi42OTktMi4yMzggMy44OTgtMy4xOTh2LS4zMnoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiLz48cGF0aCBjbGlwLXBhdGg9InVybCgjYSkiIGQ9Ik05LjUzNCAyMzUuMjU3Yy00LjE3NyAxNS4zMzEtOS41NzQgODQuMjkgOC45NzUgMTM1LjM1OC01LjA3Ny0xNy4yMy0xNC4zNTItODQuNTg4LTguOTc1LTEzNS4zNTh6IiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNNDguMjUgMjYyLjI4MWMxLjc2IDEuOTM5IDEuNzYgNi4xNTYgMCA4LjA3NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGI1NzZjIiBzdHJva2Utd2lkdGg9Ii44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIvPjxwYXRoIGQ9Ik00OS4wNSAyNjcuNDc4YzIuMDk5LS4zMiA0LjE5OC0uNjQgNS45OTctLjMyTTQxLjI5NSAzODguMjA1Yy45MiAyLjU1OCAxLjUyIDUuNDM2IDMuOTE4IDYuNzE2bS0yLjE1OS0xLjAyYy0xLjc5OS0uMzQtMi45OTguNjYtMy41OTggMi4yOTlNMjQuNzQ1IDI0Mi41MzNjMi43NTguNjQgNi4zOTYtMS45MTkgNy45MTUtNC4xNTdtLTMuOTk3IDQuNTU3Yy45IDEuMjU5IDEuNzk5IDIuODM4IDIuMzk4IDQuMzk3bTI2LjM4NCAzNy40MTdjLS4yOCAzLjc5OC0yLjYzOCA1LjY5Ny01LjU5NiA3LjI3Nm0zLjE5OC0uOTU5Yy42IDEuMjc5IDEuNDk5IDIuMjM4IDIuMzk4IDMuMTk4TTMzLjU2IDMwNi40MTRjLjMgMi41OTktLjYyIDQuODU3LTIuNDk5IDYuNDc2bTIuMTU5LTEuNjc5YzEuNzk5IDAgMy41OTggMSA0LjQ3NyAyLjYzOW01MC4wOSAzLjgzN2ExMC42NyAxMC42NyAwIDAgMCA0LjE5NyAxMC4xNTRtLTMuMDM4LTIuODc4Yy0xLjIyLjMyLTIuMTE5Ljk2LTMuMzU4IDEuMjhtMjIuODg2IDEyLjE1MmMuMyAzLjE3OC0uNjIgNi4zNTYtMS44NTkgOS4xOTRtMS4yLTIuODc4YzEuODE5LTEuMjggMy45MTctMS45MTkgNi4zMTYtMS41OTlNMjguNDYzIDI3OS41NWMuOSAzLjIzOSAzLjI5OCA0Ljg1OCA1Ljk5NiA2LjQ3N20tMy41OTgtMS45MTljLS45Ljk2LTEuNzk5IDIuMjM4LTIuMzk4IDMuODM3bS0xMC4xNTQgNTQuODQ3YzMuMDE4LS42NCA4LjQ1NS0xLjkxOSA5LjM1NC01Ljc1Nm0tMy45OTcgNC43OTdjLjYgMS4yNzkgMS40OTkgMi4yMzggMi4wNzggMy44MzdtMjIuNjA2LTE4LjQ2OGMuOSAzLjE5OC0xLjIxOSA2LjM5Ni0zLjY1NyA4LjMxNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGI1NzZjIiBzdHJva2Utd2lkdGg9Ii44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIvPjxwYXRoIGQ9Ik00Ny44NTEgMzMxLjk5OWMuOTIgMS44NzkgMi40MzkgMi44MTggNC4yMzcgMy4xMThNNDEuMDU1IDM2MS43NGM0LjQ5NyAwIDguMzc1LTIuODk3IDEwLjE1NC03LjQzNW0tMy45MTggNi40NzZjLjkgMS4yOCAxLjIgMi41NTkuOSAzLjgzOG0zMS44MDEtMTMuNDMyYy44OTkgMi44NzggMy44NTcgNC43OTcgNi43OTUgNC40NzdtLTMuODM3LS4zOTljLS44OCAxLTEuNDYgMi4yOTgtMS43NiAzLjU5OG0tMTguMzA4IDI3LjQyM2MzLjAxOC0uMzIgNi4zMTYtMi41NTkgOC43MTUtNC43OTdtLTMuMzU4IDMuODM3Yy42IDEuMjYuOSAyLjgzOSAxLjE5OSA0LjM5OG00NC42OTItMjcuOTg0Yy0uMjk5IDMuMTc5LTEuMTk4IDYuMDM3LTIuNzE4IDguODc1bTEuNzU5LTMuODM3aDQuNTU4TTE2LjM1IDI1NC42ODZjLjk0IDEuOTE4IDEuODU5IDQuMTU3IDIuMTU5IDYuMDc2bS0uMzItMi4zMTljLjMyLS45NTkgMS4yNC0xLjU5OSAyLjE1OS0xLjkxOG00OS4wOSA0Ny4zMzFjMS40NzkgMi4yMzggMi45NTggNC40NzcgMi42NzggNy4zNTVtLjY4LTIuODc4Yy4zLTEuOTE5IDEuNzk5LTIuNTU4IDMuNTk4LTIuMjM5IiBmaWxsPSJub25lIiBzdHJva2U9IiM4YjU3NmMiIHN0cm9rZS13aWR0aD0iLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLW1pdGVybGltaXQ9IjEwIi8+PHBhdGggZD0iTTM5LjQ5NiAzOTIuMDgyYzEuNTItLjMyIDMuMDM4LS42NCA0LjIzNy0xLjU5OW0xMC4xNTQtMTA1LjEzNmMuOTIgMi4yMzkgMy4wMzggMy44MzggNS40MzcgMy44MzhtLTMwLjYyMS01MS40MDljLjMgMi4yOTggMS43OTkgMy45MTggMy41OTcgNC4yMzdtLTEyLjU1MiA5Ni40MjJjLjY0IDIuODU4LjMyIDUuNzE2LjMyIDguMjM1bTUuMDM3LTEwLjE1NGMxLjgzOSAxLjYgMy4wNTggMy44MzggNS4xOTcgNS4xMTdtMTIuMjMyIDE1LjkxYy4zMiAyLjg3OSAxLjI0IDUuNzU3IDIuMTU5IDguNjM1bTIuNjM4LTEyLjA3M2MuMzIgMi41NTkgMS44NCA1LjQzNyA0LjU1OCA1Ljc1N20yNC4xNDUtNC4yMzhjMi4wOTktLjk1OSAzLjg5OC0yLjIzOCA1Ljk5Ni0zLjE5OG0uOTYtMzIuMjJjMi4wOTggMCAzLjg5Ny0uNjQgNS45OTYtLjk2bS0uOTU5IDkuNTk0YzEuODE5IDAgMy4zMzgtLjk1OSA0LjIzNy0yLjU1OG0xMy4xOTIgMTUuNjUxYzEuODE5LjM0IDMuNjE4IDAgNS4xMTctMS4wMm0xLjE5OSAyMi43MjdjMS44LjMgMy41NzgtLjMgNS4zNTctLjlNNjcuMDggMzg4LjI0NWMxLjQ5OC0uMzIgMi42NzgtMS42IDQuMTU3LTIuNTU5bS03Ljc1NS0zLjc1N2MxLjU1OSAxLjg5OCAxLjg1OCA0LjExNyAyLjE1OCA2LjMxNk0yOC40NjMgMjgzLjgyOGMuNi0xLjU5OSAxLjQ3OS0yLjg3OCAyLjYzOC0zLjgzOG0yMS4wMjctMTQuNzljLS44OCAxLjU5OC0uODggMy44MzctLjI4IDUuNzU2bS02LjkxNSA1OC44MjRjMi4xMTggMS41NCA0LjUxNy42MiA2LjMxNi0uNjJtMTYuNzktMTkuNTA4YzEuNDc5LTEuNTk5IDIuNjU4LTMuMTk4IDMuODM3LTUuMTE3bS0zNy4xNzcgNC43OThjLTEuNzc5LjMyLTMuODU4LjMyLTUuMzU3LS42NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTFjMGNhIiBzdHJva2Utd2lkdGg9IjEuNjc5IiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIvPjwvc3ZnPg==", "bact": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2Ni44OCA1MS44MyI+PGRlZnM+PHN0eWxlPi5jbHMtMSwuY2xzLTN7ZmlsbDpub25lO3N0cm9rZS1taXRlcmxpbWl0OjEwO3N0cm9rZS13aWR0aDoxLjVweDt9LmNscy0xe3N0cm9rZTojYWRiZGM0O30uY2xzLTJ7ZmlsbDojYWRiZGM0O30uY2xzLTN7c3Ryb2tlOiM2NDcyOGI7fTwvc3R5bGU+PC9kZWZzPjxnIGlkPSJMYXllcl8yIiBkYXRhLW5hbWU9IkxheWVyIDIiPjxnIGlkPSJMYXllcl8xLTIiIGRhdGEtbmFtZT0iTGF5ZXIgMSI+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMjYuOTQsMzAuODZhOC42Myw4LjYzLDAsMCwxLDIuMDktMTJMNTIuNTksMi4zMWE4LjYsOC42LDAsMSwxLDkuOSwxNC4wNkwzOC45MiwzM0E4LjYyLDguNjIsMCwwLDEsMjYuOTQsMzAuODZaIi8+PHBhdGggY2xhc3M9ImNscy0yIiBkPSJNMjgsMzEuMDlhOC4xMiw4LjEyLDAsMCwwLTYuNzMsMSw0OS4xNyw0OS4xNywwLDAsMC01LjIyLDQuNDYsMTEuODEsMTEuODEsMCwwLDEtMi45NSwyYy0xLjQxLjYtMi42OC4xOS00LjE2LjExQTExLjQ5LDExLjQ5LDAsMCwwLC4xOSw0MS43OGMtLjU4LjU1LjMsMS40NC44OC44OGExMC42OSwxMC42OSwwLDAsMSw5LTIuNzEsNS43Miw1LjcyLDAsMCwwLDMuNC0uMjhBMTEuNTYsMTEuNTYsMCwwLDAsMTYuMjEsMzhjMy41LTIuNzQsNi40Mi03LjEyLDExLjQ2LTUuNzJBLjYzLjYzLDAsMCwwLDI4LDMxLjA5WiIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTI1LjcsMjkuNThjLS4zOSw1LjI2LTUuOCw2LjM5LTkuNTUsOC43M2ExMC43MiwxMC43MiwwLDAsMC0yLjQ0LDIsNS4yMiw1LjIyLDAsMCwwLS45MiwxLjI3LDE0LjEyLDE0LjEyLDAsMCwwLS40NiwyLjA3LDEwLjIzLDEwLjIzLDAsMCwxLTUuNTgsN2MtLjcyLjM1LS4wOSwxLjQyLjYzLDEuMDhhMTAuODYsMTAuODYsMCwwLDAsNS00Ljc4LDE0LjcyLDE0LjcyLDAsMCwwLDEuMTktMy4yN0E4LDgsMCwwLDEsMTQsNDEuOTQsNSw1LDAsMCwxLDE1LDQwLjgxYzIuNjMtMi42NCw2LjYtMy4zMiw5LjM5LTUuNzhBNy43OSw3Ljc5LDAsMCwwLDI3LDI5LjU4Yy4wNi0uOC0xLjE5LS44LTEuMjUsMFoiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik00MS43NCwyNC41MWMtLjMzLDYuNzktMTEuMDYsNi45Mi0xMC45LS40NUMzMS4wNiwxNy40OSw0MS40OCwxNi42Nyw0MS43NCwyNC41MVoiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0zOC4xLDE5LjE3YzQuNjMsMS40OSw0Ljg1LDguMy4zMiwxMC4xMSIvPjwvZz48L2c+PC9zdmc+"};
+let TGT=0.9;
+const SITES=[['plasma','Blood / plasma','Blood'],['elf','Lung: epithelial lining fluid (ELF)','Lung (ELF)'],['csf','Cerebrospinal fluid (CSF)','CSF'],['tissue','Soft tissue / wound (interstitial fluid)','Soft tissue']];
+const MICM=[8,16,32,64,128,256,512],MICC=[0.0625,0.125,0.25,0.5,1,2],MICA=[16,32,64,128,256];
+const CMV=[0.125,0.25,0.5,1,2,4,8,16,32],CCV=[0.0078,0.0156,0.03125,0.0625,0.125,0.25,0.5];
+const DEFAULTS={form:'T',caManual:8,micM:64,micC:0.125,micA:64,mode:'pred',cmManual:4,ccManual:0.03125,age:70,sex:'M',weight:71,height:165,scr:90,scrUnit:'umol',crcl:70,crclCv:15,
+  site:'plasma',mId:'M2',sId:'S2',kMU:6,fuCol:0.49,mult:1,tgtM:0.4,sulCsf:0.5,colElfR:0.10,n:1000,target:0.9,limM:0.2,limC:0.3,cScale:1,sulElfR:0.5};
+const PRESETS=[
+ ['icu','Triple combination: ICU patient with ventilator-associated pneumonia (CrCl 70)',{form:'T',site:'elf',crcl:70,weight:71,mId:'M2',sId:'S2',kMU:6,mode:'pred',micM:64,micC:0.125,micA:64}],
+ ['arc','Triple combination: augmented renal clearance (CrCl 155), standard dosing',{form:'T',site:'plasma',crcl:155,mId:'M1',sId:'S1',kMU:9,mode:'pred',micM:64,micC:0.125,micA:64}],
+ ['ckd','Triple combination: renal impairment (CrCl 25)',{form:'T',site:'plasma',crcl:25,mId:'M2',sId:'S2',kMU:4.5,mode:'pred',micM:128,micC:0.125,micA:128}],
+ ['csf','Triple combination: ventriculitis / meningitis (CSF)',{form:'T',site:'csf',crcl:70,mId:'M3',sId:'S3',kMU:9,mode:'pred',micM:64,micC:0.125,micA:64}],
+ ['cm','Colistin + meropenem pair, plasma (CrCl 70, high-dose meropenem)',{form:'CM',site:'plasma',crcl:70,mId:'M4',sId:'S2',kMU:0,mode:'pred',micM:64,micC:0.125,micA:64}],
+ ['cs','Colistin + ampicillin/sulbactam pair, lung (CrCl 70)',{form:'CS',site:'elf',crcl:70,mId:'M2',sId:'S2',kMU:0,mode:'pred',micM:64,micC:0.125,micA:64}],
+ ['ms','Meropenem + ampicillin/sulbactam pair, plasma (CrCl 70, high dose)',{form:'MS',site:'plasma',crcl:70,mId:'M4',sId:'S3',kMU:6,mode:'pred',micM:64,micC:0.125,micA:64}],
+ ['cb','Triple combination with measured checkerboard concentrations',{form:'T',site:'plasma',crcl:70,mId:'M2',sId:'S2',kMU:6,mode:'manual',cmManual:4,ccManual:0.03125,caManual:8}]];
+const pct=x=>Math.round(x*100)+'%';
+const fmt=x=>x>=10?x.toFixed(0):x>=1?x.toFixed(1):x>=0.1?x.toFixed(2):x.toFixed(3);
+function cls(p){return p>=TGT?'ok':p>=TGT-0.2?'warn':'bad';}
+function clampN(v,lo,hi,d){if(v===''||v==null)return d;v=Number(v);return(v===v&&isFinite(v))?Math.min(hi,Math.max(lo,v)):d;}
+function cmsText(mu,crcl){return mu===0?'algorithm dose ('+cmsEff(0,crcl).toFixed(1)+' MU/day)':mu+' MU/day';}
+function clean(i){const o={...i};o.age=clampN(i.age,18,100,70);o.height=clampN(i.height,120,220,165);o.crcl=clampN(i.crcl,5,250,70);o.weight=clampN(i.weight,30,200,71);o.crclCv=clampN(i.crclCv,0,50,15);return o;}
+function problems(i){const p=[];const chk=(k,lo,hi,name)=>{const v=i[k];if(v===''||!(Number(v)>=lo&&Number(v)<=hi))p.push(name+' must be between '+lo+' and '+hi+'; the simulation uses '+clean(i)[k]+'.');};chk('crcl',5,250,'CrCl');chk('weight',30,200,'Weight');chk('crclCv',0,50,'CrCl uncertainty');return p;}
+function renalCat(c){return c>=130?['Augmented renal clearance','warn']:c>=90?['Normal range','ok']:c>=60?['Mildly reduced','ok']:c>=30?['Moderately reduced','warn']:c>=15?['Severely reduced','bad']:['Kidney failure range','bad'];}
+function verdictOf(s,i){const t=(i&&i.target)||0.9,lm=i&&i.limM!=null?i.limM:0.2,lc=i&&i.limC!=null?i.limC:0.3;
+  if(s.joint>=t&&s.toxM<=lm&&s.toxC<lc)return['ok','Target met and within safety limits','Joint probability of attainment '+pct(s.joint)+' (target '+pct(t)+')'];
+  if(s.joint>=t)return['warn','Target met, but toxicity risk exceeds the limits','Joint probability of attainment '+pct(s.joint)+' (target '+pct(t)+')'];
+  if(s.joint>=t-0.2)return['warn','Borderline: attainment between '+pct(t-0.2)+' and '+pct(t),'Joint probability of attainment '+pct(s.joint)];
+  return['bad','Target not met','Joint probability of attainment '+pct(s.joint)+' (target '+pct(t)+')'];}
+function Img(p){return html`<span className="imgchip" style=${{width:p.w,height:p.h||p.w}}><img src=${IMG[p.name]} alt=${p.alt||''} style=${{maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}}/></span>`;}
+function Icon(p){const s=p.size||20;const d={
+  plasma:['M12 3C12 3 5.5 10.5 5.5 15a6.5 6.5 0 0 0 13 0C18.5 10.5 12 3 12 3z'],
+  elf:['M12 3v8','M9.5 8C6 9 3.5 14 3.5 18c0 2 2 3 4 2l2.5-2V8z','M14.5 8c3.5 1 6 6 6 10 0 2-2 3-4 2L14 18V8z'],
+  csf:['M9 4.5A3.5 3.5 0 0 0 5.5 8 3.5 3.5 0 0 0 4 14a3.5 3.5 0 0 0 4 3.5V4.5z','M15 4.5A3.5 3.5 0 0 1 18.5 8 3.5 3.5 0 0 1 20 14a3.5 3.5 0 0 1-4 3.5V4.5z','M12 4v14'],
+  tissue:['M3 6.5c3-2 6 2 9 0s6 2 9 0','M3 12c3-2 6 2 9 0s6 2 9 0','M3 17.5c3-2 6 2 9 0s6 2 9 0'],
+  logo:['M8 4h8a4 4 0 0 1 0 8H8a4 4 0 0 1 0-8z','M12 4v8','M8 14l-3 6M16 14l3 6']}[p.name]||[];
+  return html`<svg width=${s} height=${s} viewBox="0 0 24 24" aria-hidden="true">${d.map((x,i)=>html`<path key=${i} d=${x} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"></path>`)}</svg>`;}
+
+function Panel(p){return html`<section className=${'panel '+(p.className||'')}><div className="ph"><span>${p.title}</span>${p.right||null}</div><div className="pb">${p.children}</div></section>`;}
+function Field(p){return html`<div><label>${p.label}</label>${p.children}${p.hint?html`<div className="hint">${p.hint}</div>`:null}</div>`;}
+function Sel(p){return html`<select value=${p.value} onChange=${e=>p.onChange(p.num?Number(e.target.value):e.target.value)}>${p.options.map(o=>html`<option key=${String(o[0])} value=${o[0]}>${o[1]}</option>`)}</select>`;}
+function Num(p){return html`<input type="number" value=${p.value} min=${p.min} max=${p.max} step="any" onChange=${e=>p.onChange(e.target.value===''?'':Number(e.target.value))}/>`;}
+function Seg(p){return html`<div className="seg">${p.options.map(o=>html`<button key=${o[0]} aria-pressed=${p.value===o[0]} className=${p.value===o[0]?'on':''} onClick=${()=>p.onChange(o[0])}>${o[1]}</button>`)}</div>`;}
+
+function niceTicks(max){const raw=max/4,p=Math.pow(10,Math.floor(Math.log10(raw))),m=raw/p,st=(m<=1?1:m<=2?2:m<=5?5:10)*p;const t=[];for(let v=0;v<=max*1.001;v+=st)t.push(v);return t;}
+
+function ProfilePlot(p){
+  const data=p.data,W=660,H=p.showX?(p.h||190)+34:(p.h||190),L=54,R=14,T=22,B=p.showX?44:10;
+  const log=p.yscale==='log';
+  const q95=Math.max(...data.map(d=>d[3]));
+  const lo=Math.log10(0.05),hi=Math.log10(Math.max(100,q95));
+  const lmax=Math.max(q95,(p.thr||0)*1.5)*1.08;
+  const x=t=>L+(W-L-R)*t/24;
+  const y=v=>log?T+(H-T-B)*(1-(Math.log10(Math.max(v,0.05))-lo)/(hi-lo)):T+(H-T-B)*(1-Math.min(v,lmax)/lmax);
+  const line=(k)=>data.map((d,i)=>(i?'L':'M')+x(d[0]).toFixed(1)+','+y(d[k]).toFixed(1)).join(' ');
+  const band=line(3)+' '+data.slice().reverse().map(d=>'L'+x(d[0]).toFixed(1)+','+y(d[1]).toFixed(1)).join(' ')+' Z';
+  const ticks=log?[0.1,1,10,100].filter(v=>Math.log10(v)<=hi):niceTicks(lmax);
+  const move=e=>{const r=e.currentTarget.getBoundingClientRect();if(!r.width)return;const px=(e.clientX-r.left)/r.width*W;const t=Math.max(0,Math.min(24,(px-L)/(W-L-R)*24));p.setHover(t);};
+  const hi_=p.hover!=null?data.reduce((b,d,i)=>Math.abs(d[0]-p.hover)<Math.abs(data[b][0]-p.hover)?i:b,0):null;
+  const hd=hi_!=null?data[hi_]:null;
+  const tx=hd?Math.min(x(hd[0])+8,W-190):0;
+  return html`<svg viewBox=${'0 0 '+W+' '+H} width="100%" role="img" aria-label=${p.title} onMouseMove=${move} onMouseLeave=${()=>p.setHover(null)}>
+    ${ticks.map(v=>html`<g key=${'y'+v}><line x1=${L} x2=${W-R} y1=${y(v)} y2=${y(v)} style=${{stroke:'var(--grid)'}}></line><text x=${L-6} y=${y(v)+4} textAnchor="end">${String(+v.toPrecision(3))}</text></g>`)}
+    ${p.showX?[0,4,8,12,16,20,24].map(t=>html`<text key=${'x'+t} x=${x(t)} y=${H-B+16} textAnchor="middle">${String(t)}</text>`):null}
+    ${p.showX?html`<text x=${(L+W-R)/2} y=${H-6} textAnchor="middle" style=${{fontSize:'11px'}}>Time within the 24-h dosing window at steady state (h)</text>`:null}
+    ${p.thrBand?html`<rect x=${L} width=${W-L-R} y=${y(p.thrBand[1])} height=${Math.max(1,y(p.thrBand[0])-y(p.thrBand[1]))} style=${{fill:'var(--thr)',opacity:.12}}></rect>`:null}
+    ${p.showBand?html`<path d=${band} style=${{fill:p.color,opacity:.18}}></path>`:null}
+    <path d=${line(2)} style=${{fill:'none',stroke:p.color,strokeWidth:2.2}}></path>
+    ${p.thr!=null?html`<g><line x1=${L} x2=${W-R} y1=${y(p.thr)} y2=${y(p.thr)} style=${{stroke:'var(--thr)',strokeDasharray:'6 4',strokeWidth:1.4}}></line><text x=${W-R-3} y=${y(p.thr)-4} textAnchor="end" style=${{fill:'var(--thr)'}}>${p.thrLabel}</text></g>`:null}
+    <text x=${L} y=${13} style=${{fill:p.color,fontWeight:700,fontSize:'12px'}}>${p.title}</text>
+    <text x=${W-R} y=${13} textAnchor="end">${p.unit+(log?' (log scale)':'')+' · line: median · shaded: 5th–95th percentile'}</text>
+    ${hd?html`<g><line x1=${x(hd[0])} x2=${x(hd[0])} y1=${T} y2=${H-B} style=${{stroke:'var(--muted)',strokeWidth:1}}></line><circle cx=${x(hd[0])} cy=${y(hd[2])} r="3.5" style=${{fill:p.color}}></circle>
+      <g><rect x=${tx} y=${T+2} width="182" height="40" rx="4" style=${{fill:'var(--panel)',stroke:'var(--border)'}}></rect>
+      <text x=${tx+7} y=${T+16} style=${{fill:'var(--text)'}}>${'t = '+hd[0].toFixed(1)+' h'}</text>
+      <text x=${tx+7} y=${T+30} style=${{fill:'var(--text)'}}>${'median '+fmt(hd[2])+' ('+fmt(hd[1])+'–'+fmt(hd[3])+')'}</text></g></g>`:null}
+  </svg>`;}
+
+function Histo(p){
+  const v=Array.from(p.vals).filter(a=>a>0).map(a=>Math.log10(a));
+  const W=660,H=190,L=54,R=14,T=22,B=44;
+  const lo=Math.min(-2.5,Math.min(...v)),hi=Math.max(0.7,Math.max(...v)),nb=28,bw=(hi-lo)/nb;
+  const bins=new Array(nb).fill(0);v.forEach(a=>{let k=Math.floor((a-lo)/bw);if(k>=nb)k=nb-1;if(k<0)k=0;bins[k]++;});
+  const mx=Math.max(...bins),x=a=>L+(W-L-R)*(a-lo)/(hi-lo),y=c=>T+(H-T-B)*(1-c/mx);
+  const lt=Math.log10(p.thr);const above=p.vals.filter?0:0;
+  let ab=0;for(const a of p.vals)if(a>=p.thr)ab++;
+  const ticks=[0.01,0.1,1,10].filter(t=>Math.log10(t)>=lo&&Math.log10(t)<=hi);
+  return html`<svg viewBox=${'0 0 '+W+' '+H} width="100%" role="img" aria-label=${p.title}>
+    ${ticks.map(t=>html`<g key=${t}><line x1=${x(Math.log10(t))} x2=${x(Math.log10(t))} y1=${T} y2=${H-B} style=${{stroke:'var(--grid)'}}></line><text x=${x(Math.log10(t))} y=${H-B+16} textAnchor="middle">${String(t)}</text></g>`)}
+    ${bins.map((c,i)=>html`<rect key=${i} x=${x(lo+i*bw)+1} y=${y(c)} width=${Math.max(1,(W-L-R)/nb-2)} height=${H-B-y(c)} style=${{fill:(lo+(i+0.5)*bw)>=lt?'var(--ok)':'var(--bad)',opacity:.75}}></rect>`)}
+    <line x1=${x(lt)} x2=${x(lt)} y1=${T} y2=${H-B} style=${{stroke:'var(--thr)',strokeDasharray:'6 4',strokeWidth:1.6}}></line>
+    <text x=${x(lt)+4} y=${T+10} style=${{fill:'var(--thr)'}}>${'threshold '+fmt(p.thr)+' mg/L'}</text>
+    <text x=${L} y=${13} style=${{fill:'var(--cCol)',fontWeight:700,fontSize:'12px'}}>${p.title}</text>
+    <text x=${W-R} y=${13} textAnchor="end">${'virtual patients above threshold: '+Math.round(100*ab/p.vals.length)+'%'}</text>
+    <text x=${(L+W-R)/2} y=${H-6} textAnchor="middle">${p.xlabel}</text></svg>`;}
+
+function FormIcon(p){const F=FORMS[p.id],s=p.size||40;const act=[];if(F.m)act.push('var(--cMero)');if(F.c)act.push('var(--cCol)');if(F.s)act.push('var(--cSul)');
+  const pos=act.length===3?[[19,17,12],[35,17,12],[27,29,12]]:[[19,22,13],[35,22,13]];
+  return html`<svg width=${Math.round(s*1.23)} height=${s} viewBox="0 0 54 44" aria-hidden="true">${act.map((c,i)=>html`<circle key=${i} cx=${pos[i][0]} cy=${pos[i][1]} r=${pos[i][2]} fill=${c} fillOpacity="0.4" stroke=${c} strokeWidth="1.7"></circle>`)}</svg>`;}
+function DrugIcon(p){const s=p.size||20;const col={mero:'var(--cMero)',sul:'var(--cSul)',col:'var(--cCol)'}[p.name];
+  const g={mero:html`<g transform="rotate(-42 12 12)"><rect x="2.5" y="8" width="19" height="8" rx="4" fill="none" stroke=${col} strokeWidth="1.7"></rect><path d="M12 8v8" stroke=${col} strokeWidth="1.5"></path><rect x="2.5" y="8" width="9.5" height="8" rx="4" fill=${col} fillOpacity="0.4"></rect></g>`,
+    sul:html`<g><path d="M12 1.5v2M7 3.5h10v10.5a5 5 0 0 1-10 0z" fill="none" stroke=${col} strokeWidth="1.7" strokeLinejoin="round"></path><path d="M7 11h10v3a5 5 0 0 1-10 0z" fill=${col} fillOpacity="0.4"></path><path d="M12 19v3" stroke=${col} strokeWidth="1.7" strokeLinecap="round"></path></g>`,
+    col:html`<g><path d="M9 2.5h6v3H9z" fill=${col} fillOpacity="0.5" stroke=${col} strokeWidth="1.5"></path><path d="M8 5.5h8v14.5a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2z" fill="none" stroke=${col} strokeWidth="1.7" strokeLinejoin="round"></path><path d="M8 12h8v8a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2z" fill=${col} fillOpacity="0.4"></path></g>`}[p.name];
+  return html`<svg width=${s} height=${s} viewBox="0 0 24 24" aria-hidden="true">${g}</svg>`;}
+function DishIcon(p){const s=p.size||26;return html`<svg width=${s} height=${s} viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" strokeWidth="1.6"></circle><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2"></circle><circle cx="9.5" cy="10" r="1.3" fill="var(--cCol)"></circle><circle cx="14" cy="9" r="1" fill="var(--cMero)"></circle><circle cx="13" cy="14.5" r="1.5" fill="var(--cSul)"></circle><circle cx="9" cy="14" r="0.9" fill="var(--cMero)"></circle></svg>`;}
+function SiteImg(p){const w=34,h=44;
+  const brain=html`<svg viewBox="0 0 40 40" width=${w-6} height=${h-14} aria-hidden="true"><path d="M20 6c-3-3-9-2-11 3-4 1-5 6-3 9-2 3 0 8 4 9 1 4 7 6 10 2 3 4 9 2 10-2 4-1 6-6 4-9 2-3 1-8-3-9-2-5-8-6-11-3z" fill="#f4b9c4" stroke="#c4566b" strokeWidth="1.3"></path><path d="M20 8v24M12 12c2 1 3 3 2 5M28 12c-2 1-3 3-2 5M11 24c2-1 4 0 5 2M29 24c-2-1-4 0-5 2" fill="none" stroke="#c4566b" strokeWidth="1.1" strokeLinecap="round"></path><path d="M16 17c1-2 3-2 4 0 1-2 3-2 4 0-1 3-2 5-4 6-2-1-3-3-4-6z" fill="#8ec9ff" stroke="#1f6feb" strokeWidth="1.1"></path></svg>`;
+  const skin=html`<svg viewBox="0 0 40 40" width=${w-6} height=${h-14} aria-hidden="true"><path d="M3 9c4-3 8 2 12 0s8 2 12 0 6 1 10 0v6H3z" fill="#e9c9a3" stroke="#b98a58" strokeWidth="1.2"></path><rect x="3" y="15" width="34" height="10" fill="#f2aab2" stroke="#c4566b" strokeWidth="1.2"></rect><rect x="3" y="25" width="34" height="11" fill="#f8e08e" stroke="#c9a227" strokeWidth="1.2"></rect><path d="M14 4v16M26 15v12" stroke="#7a4b2a" strokeWidth="1.4" strokeLinecap="round"></path><circle cx="20" cy="20" r="1.6" fill="#c62828"></circle><circle cx="31" cy="30" r="1.8" fill="#fff6c9" stroke="#c9a227" strokeWidth="0.8"></circle><circle cx="9" cy="31" r="2.2" fill="#fff6c9" stroke="#c9a227" strokeWidth="0.8"></circle></svg>`;
+  return html`<span className="imgchip" style=${{width:w,height:h}}>${p.name==='csf'?brain:skin}</span>`;}
+
+function ProfilesTab(p){const res=p.res,f=res.F;const [hover,setHover]=useState(null);const [yscale,setYs]=useState('log');const [band,setBand]=useState(true);
+  return html`<div><div className="tools"><span>Y axis</span><${Seg} value=${yscale} onChange=${setYs} options=${[['log','Log'],['lin','Linear']]}/>
+    <label style=${{display:'flex',gap:6,alignItems:'center',margin:0}}><input type="checkbox" checked=${band} onChange=${e=>setBand(e.target.checked)}/> Show 5th–95th percentile band</label>
+    <span>Hover over a plot to read values</span></div>
+    <div className="pb">${f.m?html`<${ProfilePlot} title="Meropenem" color="var(--cMero)" unit="µg/mL" data=${res.chart.mero} yscale=${yscale} showBand=${band} thr=${res.cm.p50} thrBand=${[res.cm.p10,res.cm.p90]} thrLabel=${'target concentration (median '+fmt(res.cm.p50)+')'} hover=${hover} setHover=${setHover} showX=${!f.s}/>`:null}
+    ${f.s?html`<${ProfilePlot} title="Sulbactam" color="var(--cSul)" unit="µg/mL" data=${res.chart.sul} yscale=${yscale} showBand=${band} thr=${res.cs} thrLabel=${'target concentration ('+fmt(res.cs)+' µg/mL)'} hover=${hover} setHover=${setHover} showX=${true}/>`:null}
+    ${f.c?html`<${Histo} title="Colistin: effective steady-state concentration" vals=${res.colVals} thr=${res.cc} xlabel="Effective colistin concentration at the site (mg/L, log scale)"/>`:null}</div></div>`;}
+
+function MapTab(p){const res=p.res,tab=p.tab,setTab=p.setTab,m=res.map,inp=res.inp;const lc=s=>s.replace(' MIC','').toLowerCase()+' MIC';
+  const key=l=>({M:'micM',C:'micC',A:'micA'}[l]);
+  const tk=m.tabs?(m.tabs.includes(tab)?tab:m.tabs[0]):0;const data=m.scan[tk];
+  const body=m.rows.map((r,i)=>html`<tr key=${String(r)}><th>${String(r)}</th>${data[i].map((cell,j)=>{
+    const cur=inp.mode==='pred'&&r===inp[key(m.ax.r)]&&m.cols[j]===inp[key(m.ax.c)]&&(!m.ax.t||tk===inp[key(m.ax.t)]);
+    return html`<td key=${String(j)} className=${cls(cell.j)+(cell.ex?' ex':'')+(cur?' cur':'')} title=${cell.ex?'Outside the observed MIC range (extrapolation)':'Within the observed MIC range'}>${pct(cell.j)}</td>`;})}</tr>`);
+  let summary=null;
+  if(inp.mode==='manual'){summary=html`<div className="note">Measured-concentration mode: this map does not depend on the baseline MICs.</div>`;}
+  else{const parts=m.cols.map((c,j)=>{let best=null;m.rows.forEach((r,i)=>{if(data[i][j].j>=res.target)best=r;});return m.colName.replace(' MIC','').toLowerCase()+' '+c+': '+(best?'attained up to '+lc(m.rowName)+' '+best:'not attained at any value');});
+    summary=html`<div className="note"><b>${'Highest '+lc(m.rowName)+' still attaining '+pct(res.target)+(m.tabs?' ('+lc(m.tabName)+' '+tk+')':'')+': '}</b>${parts.join(' · ')}</div>`;}
+  return html`<div className="pb"><div className="note">${'Probability that every drug of the selected formula ('+res.F.short+') reaches its target, for each baseline-MIC combination. Dose, patient and site are held as set on the left. Hatched cells lie outside the observed MIC range (meropenem 32–128, colistin 0.0625–0.25, ampicillin 32–128 µg/mL). The outlined cell is the current isolate.'}</div>
+    <div className="legend"><span><i className="sw" style=${{background:'var(--okbg)',border:'1px solid var(--ok)'}}></i>${'at or above target ('+pct(res.target)+')'}</span><span><i className="sw" style=${{background:'var(--warnbg)',border:'1px solid var(--warn)'}}></i>within 20 points of target</span><span><i className="sw" style=${{background:'var(--badbg)',border:'1px solid var(--bad)'}}></i>more than 20 points below target</span></div>
+    ${m.tabs?html`<div className="seg" style=${{maxWidth:560}}>${m.tabs.map(a=>html`<button key=${a} className=${tk===a?'on':''} onClick=${()=>setTab(a)}>${m.tabName+' '+a}</button>`)}</div>`:null}
+    <div className="scroll" style=${{marginTop:8}}><table className="heat"><thead><tr><th>${m.rowName+' (rows) / '+lc(m.colName)+' (columns), µg/mL'}</th>${m.cols.map(c=>html`<th key=${String(c)}>${String(c)}</th>`)}</tr></thead><tbody>${body}</tbody></table></div>
+    <div style=${{marginTop:8}}>${summary}</div></div>`;}
+
+function CompareTab(p){const res=p.res,tg=res.target;
+  const chips=r=>[['mero','Meropenem',r.pM],['sul','Sulbactam',r.pS],['col','Colistin',r.pC]].filter(x=>x[2]!=null);
+  return html`<div className="pb"><div className="note">${'The four formulas under the regimens, patient and site set on the left. Each isolate is taken with its own measured concentrations (39 isolates), so this view does not depend on the MIC inputs. Attainment means every drug of the formula reaches its own target in the same virtual patient.'}</div>
+    <div className="fcards">${res.cmp.map(r=>{const cur=r.id===res.form;return html`<div key=${r.id} className=${'fcard'+(cur?' cur':'')}>
+      <div className="fh"><span className="fchip"><${FormIcon} id=${r.id} size=${44}/></span><div><div className="fn">${FORMS[r.id].name}</div>${cur?html`<span className="pill mut">selected</span>`:null}</div></div>
+      <div className="big"><span className=${'pill '+cls(r.cfr)}>${pct(r.cfr)}</span><span className="note">of virtual patients reach every target</span></div>
+      <div className="bar"><i className=${cls(r.cfr)} style=${{width:pct(r.cfr)}}></i></div>
+      <div className="frow"><b>${pct(r.p90)}</b><span className="note">${'of isolates attain at least '+pct(tg)}</span></div>
+      <div className="bar"><i className=${cls(r.p90)} style=${{width:pct(r.p90)}}></i></div>
+      <div className="chips">${chips(r).map(x=>html`<span key=${x[0]} className="dchip"><${DrugIcon} name=${x[0]} size=${16}/>${x[1]+' '+pct(x[2])}</span>`)}</div>
+      <div className="frow"><span className="note">${'Synergy (FICI 0.5 or less) in the 39 isolates: '+r.syn[0]+' of '+r.syn[1]+' ('+pct(r.syn[0]/r.syn[1])+')'}</span></div>
+      <div className="bar"><i style=${{width:pct(r.syn[0]/r.syn[1]),background:'var(--muted)'}}></i></div>${r.id==='T'?html`<div className="note" style=${{marginTop:4}}>FIC below 0.8 (criterion of the earlier paper): 39 of 39 isolates</div>`:null}</div>`;})}</div>
+    <div className="note" style=${{marginTop:10}}>Reaching a formula's concentrations is not the same as synergy. A pair can be easy to reach yet rarely synergistic; read the attainment together with the synergy rate. Colistin results depend on the free fraction and target multiplier in the model assumptions.</div></div>`;}
+
+function SummaryPanel(p){const res=p.res,s=res.sel,inp=res.inp,f=res.F;
+  const vd=verdictOf(s,res.inp);const k=f.m+f.s+f.c;
+  const rows=[];
+  if(f.m)rows.push(['mero','Meropenem ('+(inp.tgtM===1?'100%':'at least 40%')+' fT>c)',s.pM]);
+  if(f.s)rows.push(['sul','Sulbactam (at least '+(inp.site==='elf'?'47.5':'60')+'% fT>c, c = half the ampicillin value)',s.pS]);
+  if(f.c)rows.push(['col','Colistin (free concentration at or above threshold)',s.pC]);
+  return html`<${Panel} title="Results summary" right=${html`<span className="fchip"><${FormIcon} id=${res.form} size=${24}/></span>`}>
+    <table className="kv"><tbody>
+      <tr><td>Formula</td><td><b>${f.name}</b></td></tr>
+      <tr className="alt"><td>Status</td><td><span className=${'pill '+vd[0]}>${vd[0]==='ok'?'Attained and safe':vd[0]==='warn'?'Review':'Not attained'}</span></td></tr>
+      <tr><td>${'Joint probability ('+(k===3?'all three':'both')+' drugs)'}</td><td><b>${pct(s.joint)}</b> <span className="note">${'95% CI '+pct(s.jlo)+'–'+pct(s.jhi)}</span><div className="bar"><i className=${cls(s.joint)} style=${{width:pct(s.joint)}}></i></div></td></tr>
+      ${rows.map((r,i)=>html`<tr key=${r[0]} className=${i%2?'':'alt'}><td><span className="dl"><${DrugIcon} name=${r[0]} size=${18}/>${r[1]}</span></td><td>${pct(r[2])}<div className="bar"><i className=${cls(r[2])} style=${{width:pct(r[2])}}></i></div></td></tr>`)}
+    </tbody></table></${Panel}>`;}
+
+function ConcPanel(p){const res=p.res,inp=res.inp,f=res.F;
+  return html`<${Panel} title="Combination concentrations used" right=${html`<span className="tiny">${inp.mode==='manual'?'measured':'predicted from MIC'}</span>`}>
+    <table className="kv"><tbody>
+      ${f.m?html`<tr><td><span className="dl"><${DrugIcon} name="mero" size=${16}/>Meropenem</span></td><td>${inp.mode==='manual'?fmt(inp.cmManual)+' µg/mL':'median '+fmt(res.cm.p50)+' µg/mL (10th–90th percentile '+fmt(res.cm.p10)+'–'+fmt(res.cm.p90)+')'}</td></tr>`:null}
+      ${f.c?html`<tr className="alt"><td><span className="dl"><${DrugIcon} name="col" size=${16}/>Colistin</span></td><td>${fmt(res.cc)+' µg/mL'+(inp.mult>1?' (threshold multiplied by '+inp.mult+')':'')}</td></tr>`:null}
+      ${f.s?html`<tr><td><span className="dl"><${DrugIcon} name="sul" size=${16}/>Ampicillin/sulbactam</span></td><td>${'ampicillin '+fmt(res.cs*2)+' / sulbactam '+fmt(res.cs)+' µg/mL'}</td></tr>`:null}
+      ${res.neff!=null?html`<tr className="alt"><td>Effective isolates informing the prediction</td><td>${res.neff.toFixed(1)}</td></tr>`:null}
+    </tbody></table>
+    ${res.neff!=null?html`<div className="note" style=${{marginTop:6}}>Baseline MICs predict the combination concentration only weakly (for meropenem in the triple combination, R squared 0.35 on the log2 scale, 39 isolates), so results are probabilities that include this uncertainty. Use measured checkerboard concentrations when available.</div>`:null}
+    ${!res.inRange?html`<div className="pill warn" style=${{marginTop:6}}>Extrapolation: MIC outside the observed range</div>`:null}</${Panel}>`;}
+
+function SafetyPanel(p){const res=p.res,s=res.sel,f=res.F;
+  return html`<${Panel} title="Safety and regimens applied">
+    <table className="kv"><tbody>
+      ${f.m?html`<tr><td>Meropenem trough at or above 45 mg/L (neurotoxicity-associated; Imani 2017)</td><td>${pct(s.toxM)} <span className=${'pill '+(s.toxM<=res.limM?'ok':'bad')}>${s.toxM<=res.limM?'within limit ('+pct(res.limM)+' or less)':'above limit'}</span></td></tr>`:null}
+      ${f.c?html`<tr className="alt"><td>Colistin Css at or above 4 mg/L</td><td>${pct(s.toxC)} <span className=${'pill '+(s.toxC<res.limC?'ok':'bad')}>${s.toxC<res.limC?'within limit (below '+pct(res.limC)+')':'above limit'}</span><div className="note">${'Median Css '+s.medCss.toFixed(2)+' mg/L'}</div></td></tr>`:null}
+      ${f.m?html`<tr><td>Meropenem as applied at this CrCl</td><td>${regText(res.regM)}</td></tr>`:null}
+      ${f.s?html`<tr className="alt"><td>Sulbactam as applied</td><td>${regText(res.regS)}</td></tr>`:null}
+      ${f.c?html`<tr><td>CMS as applied</td><td>${res.inp.kMU===0?'Renally adjusted algorithm (Nation 2017): '+res.effMU.toFixed(1)+' MU/day ('+Math.round(res.effMU*33)+' mg CBA)':res.effMU<res.inp.kMU?res.inp.kMU+' MU/day, reduced to '+res.effMU.toFixed(1)+' MU/day (algorithm maximum, CrCl below 60)':res.inp.kMU+' MU/day'}</td></tr>`:null}
+    </tbody></table></${Panel}>`;}
+
+function regLine(c,crcl,f){const a=[];if(f.m&&c.mid)a.push('meropenem '+regText(meroReg(c.mid,crcl)));if(f.s&&c.sid)a.push('sulbactam '+regText(sulReg(c.sid,crcl)));if(f.c&&c.mu!==null)a.push('CMS '+cmsText(c.mu,crcl));return a.join(' · ');}
+function DosePanel(p){const res=p.res,crcl=res.inp.crcl,f=res.F;const best=res.safeOk.length?res.safeOk[0]:null;
+  const rows=res.top5.map((c,i)=>html`<tr key=${String(i)} className=${i%2?'alt':''}><td>${String(i+1)}</td>${f.m?html`<td>${regText(meroReg(c.mid,crcl))}</td>`:null}${f.s?html`<td>${regText(sulReg(c.sid,crcl))}</td>`:null}${f.c?html`<td>${c.mu===0?'Algorithm ('+cmsEff(0,crcl).toFixed(1)+')':String(c.mu)}</td>`:null}<td><span className=${'pill '+cls(c.joint)}>${pct(c.joint)}</span></td><td><button className="sm" onClick=${()=>p.apply(c)}>Apply</button></td></tr>`);
+  const lim=[];if(f.m)lim.push('meropenem trough 45 mg/L or above in '+pct(res.limM)+' or fewer');if(f.c)lim.push('colistin Css 4 mg/L or above in below '+pct(res.limC));
+  return html`<${Panel} title="Dose finder" right=${html`<span className="tiny">${res.combos.length+' combinations searched ('+f.short+')'}</span>`}>
+    <div className="note">${'Lightest regimen reaching at least '+pct(res.target)+' joint attainment within the safety limits ('+lim.join('; ')+'). Dose index = meropenem g/day ÷ 6 + sulbactam g/day ÷ 9 + CMS MU/day ÷ 9, for the drugs in the formula.'}</div>
+    ${best?html`<div className="banner ok" style=${{marginTop:8}}><div><div className="t">Lightest regimen that attains the target</div><div className="s">${regLine(best,crcl,f)+' ('+pct(best.joint)+')'}</div></div><div className="ch"><button className="sm primary" onClick=${()=>p.apply(best)}>Apply</button></div></div>`
+      :html`<div className="banner bad" style=${{marginTop:8}}><div><div className="t">${'No safe combination reaches '+pct(res.target)+' at this site'}</div><div className="s">${res.bestAny.length?'Best achievable: '+pct(res.bestAny[0].joint)+' with '+regLine(res.bestAny[0],crcl,f):'No regimen is within the safety limits.'}</div></div></div>`}
+    <div className="scroll"><table><thead><tr><th>#</th>${f.m?html`<th>Meropenem</th>`:null}${f.s?html`<th>Sulbactam</th>`:null}${f.c?html`<th>CMS (MU/day)</th>`:null}<th>Joint</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></${Panel}>`;}
+
+function LogPanel(p){const log=p.log;
+  const rows=log.map((r,i)=>html`<tr key=${r.id} className=${i%2?'alt':''}><td>${String(r.id)}</td><td>${r.form||'Triple'}</td><td>${r.site}</td><td>${String(r.crcl)}</td><td>${r.mero}</td><td>${r.sul}</td><td>${String(r.cms)}</td><td><span className=${'pill '+cls(r.joint)}>${pct(r.joint)}</span></td><td>${r.safe?html`<span className="pill ok">safe</span>`:html`<span className="pill bad">risk</span>`}</td><td><button className="sm" onClick=${()=>p.remove(r.id)}>Remove</button></td></tr>`);
+  return html`<${Panel} title="Run log" right=${html`<span><button className="sm" onClick=${p.clear}>Clear</button></span>`}>
+    <div className="note">Pin the current result with the Pin run button to compare scenarios and formulas side by side.</div>
+    ${log.length?html`<div className="scroll"><table><thead><tr><th>#</th><th>Formula</th><th>Site</th><th>CrCl</th><th>Meropenem</th><th>Sulbactam</th><th>CMS</th><th>Joint</th><th>Safety</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:html`<div className="note" style=${{padding:'14px 0'}}>No pinned runs yet.</div>`}</${Panel}>`;}
+
+function LeftPanels(p){const inp=p.inp,set=p.set,res=p.res;
+  const cg=()=>{const scr=inp.scrUnit==='umol'?inp.scr/88.4:inp.scr;const v=(140-inp.age)*inp.weight/(72*scr)*(inp.sex==='F'?0.85:1);return isFinite(v)?Math.max(5,Math.round(v)):null;};
+  const colHint=(res&&res.effMU!=null)?(inp.kMU===0?'Algorithm dose for this CrCl: '+res.effMU.toFixed(1)+' MU/day ('+Math.round(res.effMU*33)+' mg CBA)':res.effMU<inp.kMU?'Reduced to '+res.effMU.toFixed(1)+' MU/day: the algorithm maximum for CrCl below 60':'Applied as selected'):null;
+  return html`<div>
+  <${Panel} title="1. Formula and isolate" right=${html`<span className="hdrimgs"><${DishIcon} size=${24}/><${Img} name="bact" w=${26} h=${22} alt=""/></span>`}>
+    <label>Combination formula</label>
+    <div className="forms">${FORM_IDS.map(id=>html`<button key=${id} className=${inp.form===id?'on':''} aria-pressed=${inp.form===id} title=${FORMS[id].name} onClick=${()=>set('form',id)}><span className="fchip"><${FormIcon} id=${id} size=${28}/></span><span>${FORMS[id].short}</span></button>`)}</div>
+    <div className="hint" style=${{marginBottom:8}}>${(()=>{const y=SYN[inp.form||'T'];return 'Synergy (FICI 0.5 or less) in '+y[0]+' of '+y[1]+' measured isolates ('+Math.round(100*y[0]/y[1])+'%). Only the drugs of this formula are simulated.';})()}</div>
+    <${Seg} value=${inp.mode} onChange=${x=>set('mode',x)} options=${[['pred','Predict from MICs'],['manual','Measured combination']]}/>
+    ${inp.mode==='pred'?html`<div><div className="row3"><${Field} label="Meropenem"><${Sel} num=${true} value=${inp.micM} onChange=${x=>set('micM',x)} options=${MICM.map(m=>[m,m])}/><//>
+      <${Field} label="Colistin"><${Sel} num=${true} value=${inp.micC} onChange=${x=>set('micC',x)} options=${MICC.map(m=>[m,m])}/><//>
+      <${Field} label="Ampicillin"><${Sel} num=${true} value=${inp.micA} onChange=${x=>set('micA',x)} options=${MICA.map(m=>[m,m])}/><//></div>
+      <div className="hint">MICs in µg/mL. Ampicillin MIC refers to the 2:1 ampicillin/sulbactam product. Reference data: 39 isolates with measured combination values (meropenem 32–128, colistin 0.0625–0.25, ampicillin 32–128); values outside are extrapolated.</div></div>`
+    :html`<div>${(()=>{const f=FORMS[inp.form||'T'];return html`<div className=${f.m+f.c+f.s===3?'row3':'row2'}>
+      ${f.m?html`<${Field} label="Meropenem in combination (µg/mL)"><${Sel} num=${true} value=${inp.cmManual} onChange=${x=>set('cmManual',x)} options=${CMV.map(m=>[m,m])}/><//>`:null}
+      ${f.c?html`<${Field} label="Colistin in combination (µg/mL)"><${Sel} num=${true} value=${inp.ccManual} onChange=${x=>set('ccManual',x)} options=${CCV.map(m=>[m,m])}/><//>`:null}
+      ${f.s?html`<${Field} label="Ampicillin in combination (µg/mL)" hint="Sulbactam is half the value"><${Sel} num=${true} value=${inp.caManual} onChange=${x=>set('caManual',x)} options=${[4,8,16,32].map(m=>[m,m])}/><//>`:null}</div>`;})()}</div>`}
+  </${Panel}>
+  <${Panel} title="2. Patient and infection site">
+    <div className="row3"><${Field} label="Age (years)" hint=${inp.age>65?'Over 65: low sulbactam clearance group':'65 or below: higher sulbactam clearance group'}><${Num} value=${inp.age} min=${18} max=${100} onChange=${x=>set('age',x)}/><//>
+      <${Field} label="Sex"><${Sel} value=${inp.sex} onChange=${x=>set('sex',x)} options=${[['M','Male'],['F','Female']]}/><//>
+      <${Field} label="Weight (kg)"><${Num} value=${inp.weight} min=${30} max=${200} onChange=${x=>set('weight',x)}/><//></div>
+    <div className="row2"><${Field} label="Height (cm)" hint="Used for meropenem adjusted body weight (Crandon 2011)"><${Num} value=${inp.height} min=${120} max=${220} onChange=${x=>set('height',x)}/><//><div></div></div>
+    <div className="row2"><${Field} label="Serum creatinine"><${Num} value=${inp.scr} min=${10} max=${1500} onChange=${x=>set('scr',x)}/><//>
+      <${Field} label="Unit"><${Sel} value=${inp.scrUnit} onChange=${x=>set('scrUnit',x)} options=${[['umol','µmol/L'],['mgdl','mg/dL']]}/><//></div>
+    <div className="row2"><${Field} label="CrCl (mL/min)" hint=${'Cockcroft-Gault: '+(cg()||'n/a')+' mL/min'}><${Num} value=${inp.crcl} min=${5} max=${250} onChange=${x=>set('crcl',x)}/><//>
+      <div style=${{display:'flex',alignItems:'flex-start',paddingTop:22}}><button className="sm" onClick=${()=>{const v=cg();if(v)set('crcl',v);}}>Use Cockcroft-Gault</button></div></div>
+    ${(()=>{const rc=renalCat(clean(inp).crcl);return html`<div style=${{display:'flex',gap:10,alignItems:'center',marginTop:8}}><${Img} name="kidney" w=${30} h=${40} alt=""/><div><span className=${'pill '+rc[1]}>${rc[0]}</span><div className="hint">Renal function category for the CrCl entered (ranges are descriptive, not a diagnosis).</div></div></div>`;})()}
+    <label>Infection site</label>
+    <div className="sites">${SITES.map(s=>html`<button key=${s[0]} className=${inp.site===s[0]?'on':''} title=${s[1]} onClick=${()=>set('site',s[0])}>${s[0]==='plasma'?html`<${Img} name="blood" w=${34} h=${44} alt=""/>`:s[0]==='elf'?html`<${Img} name="lung" w=${34} h=${44} alt=""/>`:html`<${SiteImg} name=${s[0]}/>`}<span>${s[2]}</span></button>`)}</div>
+  </${Panel}>
+  <${Panel} title="3. Dosing regimens" right=${html`<span className="hdrimgs"><${DrugIcon} name="mero" size=${20}/><${DrugIcon} name="sul" size=${20}/><${DrugIcon} name="col" size=${20}/></span>`}>
+    ${(()=>{const f=FORMS[inp.form||'T'];return html`<div>
+      ${f.m?html`<${Field} label=${html`<span className="dl"><${DrugIcon} name="mero" size=${16}/>Meropenem</span>`} hint=${res&&res.regM?'At this CrCl: '+regText(res.regM):null}><${Sel} value=${inp.mId} onChange=${x=>set('mId',x)} options=${MERO_IDS.map(k=>[k,MERO[k].label])}/><//>`:null}
+      ${f.s?html`<${Field} label=${html`<span className="dl"><${DrugIcon} name="sul" size=${16}/>Sulbactam (as ampicillin/sulbactam 2:1)</span>`} hint=${res&&res.regS?'At this CrCl: '+regText(res.regS):null}><${Sel} value=${inp.sId} onChange=${x=>set('sId',x)} options=${SUL_IDS.map(k=>[k,SUL[k].label])}/><//>`:null}
+      ${f.c?html`<${Field} label=${html`<span className="dl"><${DrugIcon} name="col" size=${16}/>Colistimethate (CMS), million units per day</span>`} hint=${colHint}><${Sel} num=${true} value=${inp.kMU} onChange=${x=>set('kMU',x)} options=${CMS.map(k=>[k,k===0?'Algorithm: renally adjusted (Nation 2017, 130–360 mg CBA/day)':k+' MU/day'+(k===10.8?' (360 mg CBA, ceiling)':k===12?' (above ceiling)':'')])}/><//>`:null}
+      <div className="hint">${[!f.m?'meropenem':null,!f.s?'ampicillin/sulbactam':null,!f.c?'colistin':null].filter(Boolean).join(', ')+' not part of this formula.'}</div></div>`;})()}
+  </${Panel}>
+  <${Panel} title="4. Model assumptions" right=${html`<span className="tiny">advanced</span>`}>
+    <${Field} label="Colistin free fraction"><${Sel} num=${true} value=${inp.fuCol} onChange=${x=>set('fuCol',x)} options=${[[0.49,'0.49 (critically ill patients, PMID 28011614)'],[0.085,'0.085 (6 healthy volunteers, microdialysis, PMID 25359520)']]}/><//>
+    <${Field} label="Colistin exposure scaling (sensitivity)" hint="Multiplies the regression-based colistin Css (Nation 2017). 1.0 reproduces the published attainment by renal cluster."><${Sel} num=${true} value=${inp.cScale} onChange=${x=>set('cScale',x)} options=${[[1,'1.0 (Nation 2017 regression)'],[0.5,'0.5 (sensitivity: lower exposure)']]}/><//>
+    <${Field} label="Colistin threshold multiplier (polysorbate 80 effect)"><${Sel} num=${true} value=${inp.mult} onChange=${x=>set('mult',x)} options=${[[1,'x1 (MIC as measured)'],[4,'x4 (true MIC 4-fold higher)'],[8,'x8 (true MIC 8-fold higher)']]}/><//>
+    <${Field} label="Meropenem target"><${Sel} num=${true} value=${inp.tgtM} onChange=${x=>set('tgtM',x)} options=${[[0.4,'At least 40% of the interval above c'],[1,'100% of the interval above c']]}/><//>
+    <${Field} label="Sulbactam ELF/plasma ratio (median)" hint="Published ELF PTAs are lower than this model; see the Model validation tab."><${Sel} num=${true} value=${inp.sulElfR} onChange=${x=>set('sulElfR',x)} options=${[[0.5,'0.5 (healthy volunteers, PMID 30126953)'],[0.3,'0.3 (reproduces published PTA at MIC 16, PMID 39712636)']]}/><//>
+    <${Field} label="Sulbactam penetration into CSF"><${Sel} num=${true} value=${inp.sulCsf} onChange=${x=>set('sulCsf',x)} options=${[[0.5,'0.5 (inflamed meninges)'],[0.15,'0.15 (low)']]}/><//>
+    <div className="row2"><${Field} label="Colistin ELF/plasma ratio (IV)"><${Sel} num=${true} value=${inp.colElfR} onChange=${x=>set('colElfR',x)} options=${[[0.05,'0.05'],[0.10,'0.10'],[0.26,'0.26']]}/><//>
+      <${Field} label="Virtual patients"><${Sel} num=${true} value=${inp.n} onChange=${x=>set('n',x)} options=${[[500,'500'],[1000,'1,000'],[2000,'2,000']]}/><//></div>
+    <div className="row3"><${Field} label="Attainment target"><${Sel} num=${true} value=${inp.target} onChange=${x=>set('target',x)} options=${[[0.8,'80%'],[0.9,'90%'],[0.95,'95%']]}/><//>
+      <${Field} label="Meropenem trough limit"><${Sel} num=${true} value=${inp.limM} onChange=${x=>set('limM',x)} options=${[[0.1,'10%'],[0.2,'20%'],[0.3,'30%']]}/><//>
+      <${Field} label="Colistin Css limit"><${Sel} num=${true} value=${inp.limC} onChange=${x=>set('limC',x)} options=${[[0.2,'20%'],[0.3,'30%'],[0.4,'40%']]}/><//></div>
+    <${Field} label="CrCl uncertainty (coefficient of variation, %)"><${Num} value=${inp.crclCv} min=${0} max=${50} onChange=${x=>set('crclCv',x)}/><//>
+  </${Panel}></div>`;}
+
+function runValidation(cScale,sulElfR){
+  const N=1500,rows=[],pc=x=>Math.round(x*100);
+  const cmp=(v,pub,tol)=>Math.abs(pc(v)-pub)<=tol?'ok':(pc(v)>pub?'optimistic':'pessimistic');
+  {const p=makePatients(N,170,0.25,58,99,70),ser=simulate(N,p.m_k10,p.m_k12,p.m_k21,p.m_V1,[2000,8,3]);const v=mean(okTime(ser,N,ratioM(p,'plasma'),2,1.0),N);
+   rows.push(['Meropenem 2 g q8h, 3-h infusion, CrCl about 170 (augmented clearance), 58 kg: 100% fT>c at c = 2 µg/mL','At least 90% (Luo 2025, PMID 40417688; full text read)',pc(v)+'%',v>=0.9?'ok':v>=0.82?'close':'pessimistic']);}
+  {const mkr=(lo,hi,seed)=>{const p=makePatients(N,0,0,75,seed,null,null,{range:[lo,hi]});p.fu=new Float64Array(N);const r=makeRng(seed+1);for(let i=0;i<N;i++)p.fu[i]=0.85+0.13*r.u();return p;};
+   const g=(p,reg,mic)=>{const sr=simulate(N,p.m_k10,p.m_k12,p.m_k21,p.m_V1,reg);return mean(okTime(sr,N,p.fu,mic,0.4),N);};
+   const cr=(lab,lo,hi,reg,mic,pub,seed)=>{const v=g(mkr(lo,hi,seed),reg,mic);rows.push([lab,pub+'% (Crandon 2011, PMID 21136037; full text read)',pc(v)+'%',cmp(v,pub,6)]);};
+   cr('Meropenem 2 g q8h (3-h infusion), CrCl 50 to 120, 40% fT>MIC, MIC 16',50,120,[2000,8,3],16,73.0,11);
+   cr('Meropenem 2 g q8h (0.5-h infusion), CrCl 50 to 120, MIC 8',50,120,[2000,8,0.5],8,74.8,12);
+   cr('Meropenem 1 g q8h (0.5-h infusion), CrCl 30 to 49, MIC 8',30,49,[1000,8,0.5],8,65.4,13);
+   cr('Meropenem 1 g q12h (0.5-h infusion), CrCl 10 to 29, MIC 4',10,29,[1000,12,0.5],4,84.0,14);}
+  {const p=makePatients(N,70,0.6,59.6,99,null,0.3),f=(reg,mic)=>{const s=simulate(N,p.s_k10,p.s_k12,p.s_k21,p.s_V1,reg);return mean(okTime(s,N,ratioS(p,'plasma',0.5),mic,0.6),N);};
+   const t4=(lab,reg,mic,pub)=>{const v=f(reg,mic);rows.push([lab,pub+'% (Table 4, Jaruratanasirikul 2016, PMID 27671056; full text read)',pc(v)+'%',cmp(v,pub,6)==='ok'?'ok':(pc(v)<pub?'pessimistic':'optimistic')]);};
+   t4('Sulbactam 1 g q6h (4-h infusion), plasma, 60% fT>MIC, MIC 4 (study-like mix: 30% over 65 y, 60 kg)',[1000,6,4],4,99.3);
+   t4('Same regimen, MIC 8',[1000,6,4],8,93.4);
+   t4('Same regimen, MIC 16',[1000,6,4],16,74.7);
+   t4('Sulbactam 3 g q8h (4-h infusion), plasma, MIC 32',[3000,8,4],32,73.9);}
+  {const p=makePatients(N,100,0.25,71,99,null,0.3);const k=sulElfR/0.5;for(let i=0;i<N;i++)p.rS_elf[i]*=k;
+   const s1=simulate(N,p.s_k10,p.s_k12,p.s_k21,p.s_V1,[1000,6,0.5]),s3=simulate(N,p.s_k10,p.s_k12,p.s_k21,p.s_V1,[3000,8,4]);
+   const f=(ser,mic,T)=>mean(okTime(ser,N,ratioS(p,'elf',0.5),mic,T),N);
+   rows.push(['Sulbactam 1 g q6h (0.5-h infusion), lung ELF, target 17% fT>MIC (susceptible/intermediate phenotype), MIC 4','81% (Table 4, Abouelhassan 2024, PMID 39712636; full text read)',pc(f(s1,4,0.17))+'%',cmp(f(s1,4,0.17),81,8)]);
+   rows.push(['Sulbactam 3 g q8h (4-h infusion), lung ELF, target 48% fT>MIC (resistant to sulbactam and meropenem), MIC 16','52% (same table)',pc(f(s3,16,0.48))+'%',cmp(f(s3,16,0.48),52,8)]);}
+  {const rng=makeRng(5),clus=(lo,hi,lab,pubText,thr,dir)=>{let a=0;const M=6000;for(let i=0;i<M;i++){const c=lo+(hi-lo)*rng.u();const css=colCss(cmsLookupMG(c),c,rng.n())*cScale;if(css>=thr)a++;}const v=a/M;
+     rows.push([lab,pubText+' (Nation 2017, PMID 28011614; full text read)',pc(v)+'%',dir==='gt'?(v>=0.78?'ok':'pessimistic'):(v<0.4?'ok':'optimistic')]);};
+   clus(50,80,'Colistin, algorithm dose (Table 3) for CrCl 50 to under 80: share with Css 2 mg/L or above','Above 80%',2,'gt');
+   clus(80,236,'Colistin, 360 mg CBA/day for CrCl 80 to 236: share with Css 2 mg/L or above','Below 40%',2,'lt');}
+  return rows;}
+function ValidationTab(p){const [rows]=useState(()=>runValidation(p.cScale,p.sulElfR));
+  const lab={ok:['ok','Consistent'],close:['warn','Close (slightly below)'],off:['bad','Below published'],optimistic:['bad','Model optimistic'],pessimistic:['warn','Model pessimistic']};
+  return html`<div className="pb"><div className="note">The simulation engine is re-run in your browser and compared with figures from the literature. Rows marked "full text read" were checked against the full paper; the colistin row rests on an abstract only.</div>
+    <div className="scroll" style=${{marginTop:8}}><table><thead><tr><th>Scenario simulated now</th><th>Published statement</th><th>This model</th><th>Agreement</th></tr></thead><tbody>
+    ${rows.map((r,i)=>html`<tr key=${String(i)} className=${i%2?'alt':''}><td>${r[0]}</td><td>${r[1]}</td><td><b>${r[2]}</b></td><td><span className=${'pill '+lab[r[3]][0]}>${lab[r[3]][1]}</span></td></tr>`)}</tbody></table></div>
+    <div className="note" style=${{marginTop:8}}>Reading the table: colistin now follows the published regression (Nation 2017) and reproduces the published attainment by renal cluster. Sulbactam plasma PTAs match closely up to MIC 8 and are 15 to 20 points lower at MIC 16 to 32 because the app applies a free fraction of 0.62, while the paper's PTAs sit closer to total concentrations; this makes the app conservative. For lung ELF, published PTAs use healthy-volunteer PK, so this model is more optimistic at the 17% target; at the 48% target an ELF ratio near 0.3 matches the paper.</div></div>`;}
+function Modal(p){return html`<div className="modal" onClick=${p.onClose}><div className="box" onClick=${e=>e.stopPropagation()}><div className="bh"><span>${p.title}</span><button className="sm" onClick=${p.onClose}>Close</button></div><div className="bb">${p.children}</div></div></div>`;}
+
+function HelpBody(){return html`<div>
+  <p><b>What this tool answers.</b> For each combination formula (the triple combination of colistin, meropenem and ampicillin/sulbactam, or one of the three pairs): (1) where the concentrations needed in the combination fall for an isolate with given baseline MICs; (2) whether a dosing regimen can reach those concentrations at the infection site with acceptable safety.</p>
+  <p><b>How to use.</b> Pick the formula, enter the isolate MICs (or measured checkerboard concentrations), the patient's renal function, the infection site and the regimens. Only the drugs of the chosen formula are simulated. The result updates automatically. The Compare formulas tab shows all four formulas side by side for the same patient and regimens; the MIC attainment map shows which baseline MICs the current regimen can cover; the Dose finder lists the lightest regimen that reaches the target; the Model validation tab compares the engine with published figures. Your inputs and pinned runs are kept in this browser between visits.</p>
+  <p><b>How to read the result.</b> Attainment is the share of virtual patients in whom every drug of the formula reaches its target at the same time. Targets: meropenem at least 40% of the interval above its combination concentration; sulbactam at least 60% of the interval above its combination concentration (half the ampicillin value; 47.5% in lung); colistin free concentration above its combination concentration. In the Compare tab each of the 39 measured isolates uses its own concentrations.</p>
+  <p><b>Synergy.</b> Synergy rates use FICI of 0.5 or less, no interaction above 0.5 up to 4, antagonism above 4. For the triple combination a less strict criterion (FIC below 0.8) was used in the earlier paper and is shown for comparison.</p>
+  <p><b>Glossary.</b> MIC: minimum inhibitory concentration of a drug alone. FIC: fractional inhibitory concentration. fT>c: fraction of the dosing interval that the free concentration stays above the target concentration c. ELF: epithelial lining fluid of the lung. CrCl: creatinine clearance (Cockcroft-Gault). CMS: colistimethate sodium, the prodrug of colistin; 1 MU is about 33 mg of colistin base activity. Css: average steady-state colistin concentration. Polysorbate 80: a surfactant that can make polymyxin MICs read 4 to 8 times lower than the true value.</p>
+  <p><b>Limits.</b> The targets are per-drug, not validated for any combination. Combination concentrations come from static checkerboards, so the results describe attainment of concentrations linked to in vitro inhibition, not clinical efficacy; reaching a pair's concentrations does not mean the pair is synergistic. This is a research tool and must not be used to choose doses for individual patients.</p></div>`;}
+function exportText(res){const s=res.sel,i=res.inp,f=res.F,m=res.map;
+  const L=[['Formula',f.name],['Site',i.site],['CrCl (mL/min)',i.crcl],['Weight (kg)',i.weight],['Mode',i.mode],['MIC meropenem / colistin / ampicillin',i.micM+' / '+i.micC+' / '+i.micA]];
+  if(f.m)L.push(['Meropenem regimen',regText(res.regM)],['Combination meropenem median (P10-P90)',fmt(res.cm.p50)+' ('+fmt(res.cm.p10)+'-'+fmt(res.cm.p90)+')']);
+  if(f.s)L.push(['Sulbactam regimen',regText(res.regS)],['Sulbactam target (ug/mL)',fmt(res.cs)]);
+  if(f.c)L.push(['CMS',cmsText(i.kMU,i.crcl)],['Combination colistin threshold',fmt(res.cc)]);
+  L.push(['Joint attainment',pct(s.joint)+' (95% CI '+pct(s.jlo)+'-'+pct(s.jhi)+')']);
+  if(f.m)L.push(['Meropenem attainment',pct(s.pM)],['Meropenem trough >=45 mg/L',pct(s.toxM)]);
+  if(f.s)L.push(['Sulbactam attainment',pct(s.pS)]);
+  if(f.c)L.push(['Colistin attainment',pct(s.pC)],['Colistin Css >=4 mg/L',pct(s.toxC)]);
+  let t=L.map(r=>r.join('\t')).join('\n')+'\n\nFormula comparison (39 measured isolates)\tvirtual patients attaining\tisolates at target\tsynergy\n'+res.cmp.map(r=>[r.name,pct(r.cfr),pct(r.p90),r.syn[0]+'/'+r.syn[1]].join('\t')).join('\n');
+  (m.tabs||[0]).forEach(a=>{t+='\n\n'+(m.tabs?m.tabName+' '+a+'\n':'')+m.rowName+' / '+m.colName+'\t'+m.cols.join('\t');m.rows.forEach((r,k)=>{t+='\n'+r+'\t'+m.scan[a][k].map(c=>Math.round(c.j*100)+'%'+(c.ex?'*':'')).join('\t');});});
+  return t+'\n\n* outside the observed MIC range (extrapolation)';}
+function csvQ(v){const t=String(v);return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;}
+function resultsCsv(res){const s=res.sel,i=res.inp,f=res.F,m=res.map;
+  const R=[['item','value'],['formula',f.name],['site',i.site],['crcl_ml_min',i.crcl],['weight_kg',i.weight],['mode',i.mode],['mic_meropenem',i.micM],['mic_colistin',i.micC],['mic_ampicillin',i.micA]];
+  if(f.m)R.push(['meropenem_regimen',regText(res.regM)],['combination_meropenem_median',fmt(res.cm.p50)],['combination_meropenem_p10',fmt(res.cm.p10)],['combination_meropenem_p90',fmt(res.cm.p90)],['meropenem_attainment',s.pM.toFixed(3)],['meropenem_trough_ge_45_share',s.toxM.toFixed(3)]);
+  if(f.s)R.push(['sulbactam_regimen',regText(res.regS)],['sulbactam_target_ug_ml',fmt(res.cs)],['sulbactam_attainment',s.pS.toFixed(3)]);
+  if(f.c)R.push(['cms_dose',cmsText(i.kMU,i.crcl)],['colistin_exposure_scaling',res.cScale],['colistin_threshold_multiplier',i.mult],['colistin_free_fraction',i.fuCol],['combination_colistin_threshold',fmt(res.cc)],['colistin_attainment',s.pC.toFixed(3)],['colistin_css_ge_4_share',s.toxC.toFixed(3)]);
+  R.push(['joint_attainment',s.joint.toFixed(3)],['joint_ci_low',s.jlo.toFixed(3)],['joint_ci_high',s.jhi.toFixed(3)]);
+  let t=R.map(r=>r.map(csvQ).join(',')).join('\n');
+  t+='\n\nformula_comparison\nformula,virtual_patients_attaining,isolates_at_target,synergy_isolates,isolates_tested\n'+res.cmp.map(r=>[r.name,r.cfr.toFixed(3),r.p90.toFixed(3),r.syn[0],r.syn[1]].map(csvQ).join(',')).join('\n');
+  const sn=x=>x.toLowerCase().replace(/ /g,'_');
+  t+='\n\nattainment_map\n'+(m.tabs?sn(m.tabName)+',':'')+sn(m.rowName)+','+m.cols.map(c=>sn(m.colName)+'_'+c).join(',');
+  (m.tabs||[0]).forEach(a=>m.rows.forEach((r,k)=>{t+='\n'+(m.tabs?a+',':'')+r+','+m.scan[a][k].map(c=>c.j.toFixed(3)+(c.ex?'*':'')).join(',');}));
+  return t+'\n* outside observed MIC range (extrapolation)\n';}
+function logCsv(log){return 'run,formula,site,crcl,meropenem,sulbactam,cms_mu_day,joint_attainment,within_safety_limits\n'+log.map(r=>[r.id,r.form||'Triple',r.site,r.crcl,r.mero,r.sul,r.cms,r.joint.toFixed(3),r.safe?'yes':'no'].map(csvQ).join(',')).join('\n')+'\n';}
+function loadSaved(){try{const t=localStorage.getItem('crab-pkpd-v2');return t?JSON.parse(t):null;}catch(e){return null;}}
+function App(){
+  const saved=React.useMemo(()=>loadSaved(),[]);
+  const [inp,setInp]=useState(()=>({...DEFAULTS,...((saved&&saved.inp)||{})}));
+  const [dl,setDl]=useState(null);
+  const [res,setRes]=useState(globalThis.__RES||null);const [busy,setBusy]=useState(false);
+  const [tab,setTab]=useState('profiles');const [mapTab,setMapTab]=useState(64);
+  const [auto,setAuto]=useState(true);const [log,setLog]=useState(()=>(saved&&Array.isArray(saved.log))?saved.log:[]);const [modal,setModal]=useState(null);const [counter,setCounter]=useState(1);
+  const set=(k,v)=>setInp(p=>({...p,[k]:v}));
+  useEffect(()=>{try{if(typeof claude!=='undefined'&&claude&&claude.use){claude.use('downloads').then(d=>{if(d)setDl(d);}).catch(()=>{});}}catch(e){}},[]);
+  useEffect(()=>{try{localStorage.setItem('crab-pkpd-v2',JSON.stringify({inp,log}));}catch(e){}},[inp,log]);
+  const [dlMsg,setDlMsg]=useState('');
+  const saveFile=(name,text)=>{if(!dl)return;dl.save({filename:name,data:text}).then(()=>setDlMsg('Saved '+name),e=>setDlMsg(e&&e.code==='declined'?'Download cancelled.':'Download not available here; use Copy instead.'));};
+  const run=(x)=>{setBusy(true);setTimeout(()=>{try{setRes(computeAll(clean(x||inp)));}catch(e){console.error(e);}setBusy(false);},20);};
+  useEffect(()=>{if(globalThis.__RES)return;if(!auto&&res)return;const t=setTimeout(()=>run(inp),res?450:30);return()=>clearTimeout(t);},[inp,auto]);
+  const theme=()=>{try{const r=document.documentElement;r.setAttribute('data-theme',r.getAttribute('data-theme')==='dark'?'light':'dark');}catch(e){}};
+  const preset=id=>{const pr=PRESETS.find(x=>x[0]===id);if(pr)setInp({...DEFAULTS,...pr[2]});};
+  const apply=c=>setInp(p=>({...p,mId:c.mid||p.mId,sId:c.sid||p.sId,kMU:(c.mu!==null&&c.mu!==undefined)?c.mu:p.kMU}));
+  const pin=()=>{if(!res)return;const s=res.sel;setLog(l=>[{id:counter,site:SITES.find(x=>x[0]===res.inp.site)[2],crcl:res.inp.crcl,form:res.F.short,mero:res.F.m?MERO[res.inp.mId].label:'–',sul:res.F.s?SUL[res.inp.sId].label:'–',cms:res.F.c?cmsText(res.inp.kMU,res.inp.crcl):'–',joint:s.joint,safe:(s.toxM<=res.limM&&s.toxC<res.limC)},...l].slice(0,15));setCounter(c=>c+1);};
+  if(res)TGT=res.inp.target||0.9;
+  const vd=res?verdictOf(res.sel,res.inp):null;
+  const siteName=res?SITES.find(x=>x[0]===res.inp.site)[1]:'';
+  const copy=()=>{try{const ta=document.getElementById('exp');ta.select();document.execCommand('copy');}catch(e){}};
+  return html`<div>
+    <div className="top"><div className="brand"><${Img} name="bact" w=${34} h=${28} alt=""/><div>CRAB PK/PD Simulator</div></div>
+      <div className="sp"></div>
+      <select aria-label="Load an example scenario" value="" onChange=${e=>{if(e.target.value)preset(e.target.value);}}><option value="">Load example scenario...</option>${PRESETS.map(x=>html`<option key=${x[0]} value=${x[0]}>${x[1]}</option>`)}</select>
+      <label className="chk" style=${{margin:0}}><input type="checkbox" checked=${auto} onChange=${e=>setAuto(e.target.checked)}/> Auto-run</label>
+      <button className="tbtn run" onClick=${()=>run()}>${busy?'Running...':'Run'}</button>
+      <button className="tbtn" onClick=${pin} disabled=${!res}>Pin run</button>
+      <button className="tbtn" onClick=${()=>setInp(DEFAULTS)}>Reset</button>
+      <button className="tbtn" onClick=${()=>setModal('export')} disabled=${!res}>Export</button>
+      <button className="tbtn" onClick=${()=>setModal('help')}>Help</button>
+      <button className="tbtn" onClick=${theme}>Light / dark</button></div>
+    <section className="hero"><div className="in"><div className="cover"><div className="cvtop">PK/PD</div><div className="cvmid"><${FormIcon} id="T" size=${40}/></div><div className="cvbot"><${DrugIcon} name="mero" size=${16}/><${DrugIcon} name="sul" size=${16}/><${DrugIcon} name="col" size=${16}/></div></div>
+      <div><h1>CRAB Combination PK/PD Simulator</h1><div className="sub">Colistin, meropenem and ampicillin/sulbactam against carbapenem-resistant Acinetobacter baumannii: pairs and triple combination, Monte Carlo in your browser</div></div>
+      <div className="metrics"><div className="metric"><b>39</b><span>measured isolates</span></div><div className="metric"><b>4</b><span>combination formulas</span></div><div className="metric"><b>5</b><span>renal strata</span></div></div></div></section>
+    <div className="wrap">
+      ${problems(inp).length?html`<div className="warnbox">${problems(inp).join(' ')}</div>`:null}
+      ${vd?html`<div className=${'banner '+vd[0]}><div><div className="t">${vd[1]}</div><div className="s">${vd[2]}</div></div>
+        <div className="ch"><span className="chip pill mut">${siteName}</span><span className="pill mut">${res.F.short}</span><span className="pill mut">${'CrCl '+res.inp.crcl+' mL/min'}</span><span className="pill mut">${res.inp.n+' virtual patients'}</span>${res.neff!=null?html`<span className="pill warn">MIC-based prediction: low reliability</span>`:null}${(res.inp.mode==='pred'&&res.inp.micM>16)?html`<span className="pill warn">Time-kill model: growth suppression above 90% only for meropenem MIC 16 or lower (PMID 42268210)</span>`:null}${!res.inRange?html`<span className="pill warn">Extrapolated MIC</span>`:null}</div></div>`
+        :html`<div className="banner"><div className="t">Running simulation...</div></div>`}
+      <div className="workspace">
+        <${LeftPanels} inp=${inp} set=${set} res=${res}/>
+        <div className=${busy?'spin':''}>
+          <section className="panel"><div className="tabs" role="tablist"><button role="tab" aria-selected=${tab==='profiles'} className=${tab==='profiles'?'on':''} onClick=${()=>setTab('profiles')}>Concentration-time profiles</button><button role="tab" aria-selected=${tab==='cmp'} className=${tab==='cmp'?'on':''} onClick=${()=>setTab('cmp')}>Compare formulas</button><button role="tab" aria-selected=${tab==='map'} className=${tab==='map'?'on':''} onClick=${()=>setTab('map')}>MIC attainment map</button><button role="tab" aria-selected=${tab==='val'} className=${tab==='val'?'on':''} onClick=${()=>setTab('val')}>Model validation</button></div>
+            ${!res?html`<div className="pb">Running simulation...</div>`:(tab==='profiles'?html`<${ProfilesTab} res=${res}/>`:tab==='cmp'?html`<${CompareTab} res=${res}/>`:tab==='map'?html`<${MapTab} res=${res} tab=${mapTab} setTab=${setMapTab}/>`:html`<${ValidationTab} key=${res.cScale+'-'+res.inp.sulElfR} cScale=${res.cScale} sulElfR=${res.inp.sulElfR}/>`)}</section>
+        </div>
+        ${res?html`<div className=${'right '+(busy?'spin':'')}><${SummaryPanel} res=${res}/><${ConcPanel} res=${res}/><${SafetyPanel} res=${res}/></div>`:html`<div></div>`}
+      </div>
+      ${res?html`<div className="bottom" style=${{marginTop:10}}><${DosePanel} res=${res} apply=${apply}/><${LogPanel} log=${log} remove=${id=>setLog(l=>l.filter(x=>x.id!==id))} clear=${()=>setLog([])}/></div>`:null}
+      <footer>
+        <details><summary>Methods, sources and limitations</summary>
+          <p>Pharmacokinetics: meropenem two-compartment model of Crandon 2011 (PMID 21136037: V1 0.239 L/kg of adjusted body weight, K12 0.487, K21 0.647, K10 = 0.392 + 0.0025 x CrCl per hour; between-patient variability set from the published standard deviations, V1 55%, K12 44%, K21 57%, K10 35% assumed; free fraction 0.92, the middle of the 0.85–0.98 range used there); sulbactam two-compartment model of Jaruratanasirikul 2016 (PMID 27671056: Vc 14.56 L, Vp 9.55 L, Q 11.5 L/h, CL = exp(0.54 + 0.28 x CrCl/30) above 65 years and exp(1.57 + 0.46 x CrCl/83) at 65 years or below, between-patient variability 48–53%; protein binding about 38%); colistin Css = CBA dose / 10^(0.0048 x CrCl + 1.667) with log-normal scatter (sigma 0.415), the regression of Nation 2017 (PMID 28011614), with 33 mg CBA per million units and a free fraction of 0.49 measured in critically ill patients (ultracentrifugation; the 0.085 figure comes from 6 healthy volunteers by microdialysis, which the authors call semiquantitative because colistin may adsorb to the equipment). The dosing equation of Garonzik 2011 (PMID 21555763) is the interim version of the same work. Weight and renal variability follow a Malaysian cohort of critically ill CRAB patients (PMID 42025645).</p>
+          <p>Site penetration: ELF, CSF and tissue ratios from PMIDs 25216821, 16280244, 34570645, 27776537, 27867128, 31670654, 25336163, 30126953, 40980912, 41519407, 25267660, 26645525 and 23335739. Targets: sulbactam at least 60% fT>4 µg/mL in plasma (PMID 39031073) and at least 47.5% in ELF (PMID 39712636). Colistin free fraction 2.8–14.1% (PMID 25359520); polysorbate 80 lowers polymyxin MICs 4 to 8-fold (PMIDs 23102558, 31364075).</p>
+          <p>Reference data: 39 carbapenem-resistant A. baumannii isolates with measured combination MICs for each pair and for the triple combination. Ampicillin/sulbactam was fixed at 8/4 µg/mL in every combination; colistin was at 0.03125 µg/mL in 38 isolates in the triple combination and in 36 in the colistin–meropenem pair, and at 0.0625 µg/mL in most isolates in the colistin–ampicillin/sulbactam pair, so colistin is left-censored; meropenem in combination had medians of 2 (triple), 16 (with colistin) and 64 µg/mL (with ampicillin/sulbactam). In prediction mode a kernel over the isolates' baseline MICs draws a neighbour: meropenem keeps the neighbour's fold reduction, colistin and ampicillin take the neighbour's measured value (colistin scaled up when its MIC is above 0.25 µg/mL). The sulbactam target is half the ampicillin concentration. Predicting the combination concentration from baseline MICs is weak (Spearman 0.64 for meropenem MIC; leave-one-out RMSE 1.68 log2 units against 1.90 without MICs), and the 10th–90th percentile interval covers 85% of isolates.</p>
+          <p>Full texts read (PMIDs 21136037, 25359520, 28011614, 27671056, 21555763, 39712636, 40417688, 42268210, 39991086, 27776537, 40980912, 41810872, 34827359, 33371322, 42059802, 31849910) confirmed the model structure and targets, with these notes: the 47.5% ELF target applies to isolates resistant to both sulbactam and meropenem (n = 4 isolates); the 45 mg/L meropenem trough is a neurotoxicity-associated level (Imani 2017) cited by an adult CRRT study (PMID 39991086); the free fraction of colistin was 0.49 in 66 critically ill patients, much higher than the microdialysis range of 2.8–14.1%; Nation 2017 advises combination therapy when CrCl is 80 or above, for respiratory infections, or when the colistin MIC is 1 mg/L or above; the sulbactam study notes that Cockcroft-Gault CrCl may predict clearance poorly in patients over 65. Still unread: PMIDs 39031073, 40903201, 42025645. The meropenem model gives about 10% higher AUC and Cmax than the tables in Crandon 2011 and is a few points optimistic at high MICs with 0.5-h infusions.</p>
+          <p>Limits: per-drug targets, not validated for any combination; static checkerboard concentrations; no CRRT, dialysis, paediatric or urine modelling; safety limits (meropenem trough 45 mg/L or above in 20% or fewer; colistin Css 4 mg/L or above in below 30%) are the simulator's choice. Results describe attainment of concentrations linked to in vitro synergy, not clinical efficacy.</p></details>
+        <div className="credit"><${Img} name="lung" w=${22} h=${30} alt=""/><${Img} name="blood" w=${22} h=${30} alt=""/><${Img} name="kidney" w=${22} h=${30} alt=""/><${Img} name="bact" w=${26} h=${22} alt=""/>
+          <span>Illustrations (lung, blood vessels, kidney): Servier Medical Art, CC BY 4.0 (smart.servier.com). Bacterium icon: Pauline Franz, Bioicons, CC0. Site icons for CSF and soft tissue, drug icons and the formula diagrams are drawn for this tool.</span></div>
+        <p>Research use only. Not for dosing individual patients. Version 1.0, November 2026.</p></footer></div>
+    ${modal==='help'?html`<${Modal} title="Help" onClose=${()=>setModal(null)}><${HelpBody}/></${Modal}>`:null}
+    ${modal==='export'&&res?html`<${Modal} title="Export results" onClose=${()=>setModal(null)}><div className="note">Select the text below and copy it into a spreadsheet (tab-separated).</div><textarea id="exp" readOnly value=${exportText(res)}></textarea><div style=${{marginTop:8,display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}><button className="primary" onClick=${copy}>Copy to clipboard</button>${dl?html`<button onClick=${()=>saveFile('crab_pkpd_results.csv',resultsCsv(res))}>Download results (CSV)</button>`:null}${dl&&log.length?html`<button onClick=${()=>saveFile('crab_pkpd_run_log.csv',logCsv(log))}>Download run log (CSV)</button>`:null}<span className="note">${dlMsg}</span></div></${Modal}>`:null}
+  </div>`;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>

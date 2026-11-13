@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below and cite the related paper."
+title: "CRAB Combination PK/PD Simulator"
+version: 1.0.0
+date-released: 2026-11-13
+license: MIT
+type: software
+authors:
+  - family-names: "Lam"
+    given-names: "Thanh"
+    affiliation: "Faculty of Medical Technology, Van Lang University, Ho Chi Minh City, Vietnam"
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+abstract: "Browser-based Monte Carlo simulator of the probability that colistin, meropenem and ampicillin/sulbactam (three pairs and the triple combination) reach their own target concentrations in the same virtual patient, using measured checkerboard concentrations from 39 carbapenem-resistant Acinetobacter baumannii isolates and published population pharmacokinetic models. Research use only."
+keywords:
+  - Acinetobacter baumannii
+  - colistin
+  - meropenem
+  - ampicillin/sulbactam
+  - pharmacokinetics/pharmacodynamics
+  - Monte Carlo simulation
+references:
+  - type: article
+    authors:
+      - family-names: "Huynh"
+        given-names: "Tuan"
+      - family-names: "Lam"
+        given-names: "Thanh"
+      - family-names: "Pham"
+        given-names: "Ngan"
+      - family-names: "Luong"
+        given-names: "Loan"
+      - family-names: "Jusselme"
+        given-names: "My Dung"
+    title: "Mathematical modelling of synergistic triple-antibiotic therapy against carbapenem-resistant Acinetobacter baumannii at clinically achievable concentrations"
+    journal: "Journal of Medical Microbiology"
+    year: 2025
+    volume: 74
+    doi: "10.1099/jmm.0.002086"
