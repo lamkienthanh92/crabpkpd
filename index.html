@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 <title>CRAB Combination PK/PD Simulator: colistin, meropenem, ampicillin/sulbactam</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
@@ -229,11 +230,11 @@ function sulTarget(site){return site==='elf'?0.475:0.6;}
 function cssArr(P,mu,nominal){const a=new Float64Array(P.n),D=cmsEff(mu,nominal)*MG_PER_MU;for(let i=0;i<P.n;i++){const cr=P.crcl[i];a[i]=D/Math.pow(10,0.0048*cr+1.667)*P.eta[i];}return a;}
 function okCol(css,site,cc,o){const n=css.length;const out=new Uint8Array(n);
   for(let i=0;i<n;i++){let v;
-    if(site==='elf')v=o.rElf*css[i];else if(site==='csf')v=0.09*css[i];else if(site==='tissue')v=0.12*o.fu*css[i];else v=o.fu*css[i];
+    if(site==='elf')v=o.rElf*o.fu*css[i];else if(site==='csf')v=0.09*css[i];else if(site==='tissue')v=0.12*o.fu*css[i];else v=o.fu*css[i];
     out[i]=v>=(typeof cc==='number'?cc:cc[i])?1:0;}
   return out;}
 function colEff(css,site,o){const n=css.length,a=new Float64Array(n);
-  for(let i=0;i<n;i++){a[i]=site==='elf'?o.rElf*css[i]:site==='csf'?0.09*css[i]:site==='tissue'?0.12*o.fu*css[i]:o.fu*css[i];}return a;}
+  for(let i=0;i<n;i++){a[i]=site==='elf'?o.rElf*o.fu*css[i]:site==='csf'?0.09*css[i]:site==='tissue'?0.12*o.fu*css[i]:o.fu*css[i];}return a;}
 function wilson(k,n){const z=1.96,p=k/n,d=1+z*z/n,c=p+z*z/(2*n),h=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n));return[Math.max(0,(c-h)/d),Math.min(1,(c+h)/d)];}
 function mean(u,n){let s=0;for(let i=0;i<n;i++)s+=u[i];return s/n;}
 function ccFromMic(micC,mult){return Math.max(0.03125,0.125*micC)*mult;}
@@ -271,6 +272,8 @@ function computeAll(inp){
   const cScale=inp.cScale||1,target=inp.target||0.9,limM=inp.limM!=null?inp.limM:0.2,limC=inp.limC!=null?inp.limC:0.3;
   const n=inp.n,P=makePatients(n,inp.crcl,inp.crclCv/100,inp.weight,20261112,inp.age||65,null,{height:inp.height||165,sex:inp.sex});
   if(inp.sulElfR&&inp.sulElfR!==0.5){const k=inp.sulElfR/0.5;for(let i=0;i<n;i++)P.rS_elf[i]*=k;}
+  if(inp.mElfK&&inp.mElfK!==1){for(let i=0;i<n;i++)P.rM_elf[i]*=inp.mElfK;}
+  if(inp.mCsfK&&inp.mCsfK!==1){for(let i=0;i<n;i++)P.rM_csf[i]*=inp.mCsfK;}
   const rng=makeRng(777),ones=new Uint8Array(n).fill(1);
   let cmA=null,ccA=null,caA=null,neff=null;
   if(inp.mode==='manual'){if(f.m)cmA=new Float64Array(n).fill(inp.cmManual);if(f.c)ccA=new Float64Array(n).fill(inp.ccManual);if(f.s)caA=new Float64Array(n).fill(inp.caManual||8);}
@@ -338,7 +341,7 @@ const SITES=[['plasma','Blood / plasma','Blood'],['elf','Lung: epithelial lining
 const MICM=[8,16,32,64,128,256,512],MICC=[0.0625,0.125,0.25,0.5,1,2],MICA=[16,32,64,128,256];
 const CMV=[0.125,0.25,0.5,1,2,4,8,16,32],CCV=[0.0078,0.0156,0.03125,0.0625,0.125,0.25,0.5];
 const DEFAULTS={form:'T',caManual:8,micM:64,micC:0.125,micA:64,mode:'pred',cmManual:4,ccManual:0.03125,age:70,sex:'M',weight:71,height:165,scr:90,scrUnit:'umol',crcl:70,crclCv:15,
-  site:'plasma',mId:'M2',sId:'S2',kMU:6,fuCol:0.49,mult:1,tgtM:0.4,sulCsf:0.5,colElfR:0.10,n:1000,target:0.9,limM:0.2,limC:0.3,cScale:1,sulElfR:0.5};
+  site:'plasma',mId:'M2',sId:'S2',kMU:6,fuCol:0.49,mult:1,tgtM:0.4,sulCsf:0.5,colElfR:0.26,mElfK:1,mCsfK:1,n:1000,target:0.9,limM:0.2,limC:0.3,cScale:1,sulElfR:0.5};
 const PRESETS=[
  ['icu','Triple combination: ICU patient with ventilator-associated pneumonia (CrCl 70)',{form:'T',site:'elf',crcl:70,weight:71,mId:'M2',sId:'S2',kMU:6,mode:'pred',micM:64,micC:0.125,micA:64}],
  ['arc','Triple combination: augmented renal clearance (CrCl 155), standard dosing',{form:'T',site:'plasma',crcl:155,mId:'M1',sId:'S1',kMU:9,mode:'pred',micM:64,micC:0.125,micA:64}],
@@ -353,7 +356,7 @@ const fmt=x=>x>=10?x.toFixed(0):x>=1?x.toFixed(1):x>=0.1?x.toFixed(2):x.toFixed(
 function cls(p){return p>=TGT?'ok':p>=TGT-0.2?'warn':'bad';}
 function clampN(v,lo,hi,d){if(v===''||v==null)return d;v=Number(v);return(v===v&&isFinite(v))?Math.min(hi,Math.max(lo,v)):d;}
 function cmsText(mu,crcl){return mu===0?'algorithm dose ('+cmsEff(0,crcl).toFixed(1)+' MU/day)':mu+' MU/day';}
-function clean(i){const o={...i};o.age=clampN(i.age,18,100,70);o.height=clampN(i.height,120,220,165);o.crcl=clampN(i.crcl,5,250,70);o.weight=clampN(i.weight,30,200,71);o.crclCv=clampN(i.crclCv,0,50,15);return o;}
+function clean(i){const o={...i};o.age=clampN(i.age,18,100,70);o.height=clampN(i.height,120,220,165);o.crcl=clampN(i.crcl,5,250,70);o.weight=clampN(i.weight,30,200,71);o.crclCv=clampN(i.crclCv,0,50,15);if(o.colElfR!==0.26&&o.colElfR!==0.52)o.colElfR=0.26;if(!(o.mElfK>0))o.mElfK=1;if(!(o.mCsfK>0))o.mCsfK=1;return o;}
 function problems(i){const p=[];const chk=(k,lo,hi,name)=>{const v=i[k];if(v===''||!(Number(v)>=lo&&Number(v)<=hi))p.push(name+' must be between '+lo+' and '+hi+'; the simulation uses '+clean(i)[k]+'.');};chk('crcl',5,250,'CrCl');chk('weight',30,200,'Weight');chk('crclCv',0,50,'CrCl uncertainty');return p;}
 function renalCat(c){return c>=130?['Augmented renal clearance','warn']:c>=90?['Normal range','ok']:c>=60?['Mildly reduced','ok']:c>=30?['Moderately reduced','warn']:c>=15?['Severely reduced','bad']:['Kidney failure range','bad'];}
 function verdictOf(s,i){const t=(i&&i.target)||0.9,lm=i&&i.limM!=null?i.limM:0.2,lc=i&&i.limC!=null?i.limC:0.3;
@@ -479,6 +482,29 @@ function CompareTab(p){const res=p.res,tg=res.target;
       <div className="bar"><i style=${{width:pct(r.syn[0]/r.syn[1]),background:'var(--muted)'}}></i></div>${r.id==='T'?html`<div className="note" style=${{marginTop:4}}>FIC below 0.8 (criterion of the earlier paper): 39 of 39 isolates</div>`:null}</div>`;})}</div>
     <div className="note" style=${{marginTop:10}}>Reaching a formula's concentrations is not the same as synergy. A pair can be easy to reach yet rarely synergistic; read the attainment together with the synergy rate. Colistin results depend on the free fraction and target multiplier in the model assumptions.</div></div>`;}
 
+
+function SensTab(p){const res=p.res,inp=res.inp,f=res.F;const [rows,setRows]=useState(null);const [busy,setBusy]=useState(false);
+  const site=inp.site;
+  const scen=()=>{const L=[];const nn=Math.min(inp.n,800);const B={...inp,n:nn};
+    L.push(['Reference','Inputs as set on the left',B,'ref']);
+    if(f.c){L.push(['Colistin','A: free fraction 0.49, target x1',{...B,fuCol:0.49,mult:1}],['Colistin','B: free fraction 0.085, target x1',{...B,fuCol:0.085,mult:1}],['Colistin','C: free fraction 0.49, target x4 (polysorbate 80)',{...B,fuCol:0.49,mult:4}],['Colistin','D: free fraction 0.085, target x4',{...B,fuCol:0.085,mult:4}]);}
+    if(f.m){L.push(['Meropenem target','At least 40% of the interval above c',{...B,tgtM:0.4}],['Meropenem target','At least 60% of the interval',{...B,tgtM:0.6}],['Meropenem target','100% of the interval',{...B,tgtM:1}]);
+      if(site==='elf'||site==='csf'){L.push(['Meropenem penetration','Low (lung 0.15, CSF 0.05)',{...B,mElfK:0.556,mCsfK:0.556}],['Meropenem penetration','Base (lung 0.27, CSF 0.09)',{...B,mElfK:1,mCsfK:1}],['Meropenem penetration','High (lung 0.40, CSF 0.16)',{...B,mElfK:1.481,mCsfK:1.778}]);}}
+    if(f.s&&site==='elf'){L.push(['Sulbactam lung ratio','0.3 of total plasma',{...B,sulElfR:0.3}],['Sulbactam lung ratio','0.5 of total plasma',{...B,sulElfR:0.5}]);}
+    return L;};
+  const run=()=>{const L=scen();setBusy(true);setRows(null);const out=[];let i=0;
+    const step=()=>{if(i>=L.length){setRows(out);setBusy(false);return;}
+      try{const r=computeAll(clean(L[i][2]));out.push({g:L[i][0],lab:L[i][1],j:r.sel.joint,lo:r.sel.jlo,hi:r.sel.jhi,pM:r.sel.pM,pS:r.sel.pS,pC:r.sel.pC,best:r.safeOk.length?r.safeOk[0]:null,top:r.top5[0]||null});}catch(e){out.push({g:L[i][0],lab:L[i][1],err:true});}
+      i++;setTimeout(step,10);};setTimeout(step,10);};
+  const base=rows&&rows[0]&&!rows[0].err?rows[0].j:null;
+  const csv=()=>rows?'group,scenario,joint_attainment,meropenem,sulbactam,colistin\n'+rows.map(r=>[r.g,'"'+r.lab+'"',r.err?'':r.j.toFixed(4),r.pM==null?'':r.pM.toFixed(4),r.pS==null?'':r.pS.toFixed(4),r.pC==null?'':r.pC.toFixed(4)].join(',')).join('\n'):'';
+  const regLabel=b=>b?(b.mid?MERO[b.mid].label:'')+(b.sid?(b.mid?' + ':'')+SUL[b.sid].label:'')+(b.mu!==null&&b.mu!==undefined?' + CMS '+b.mu+' MU':''):'none';
+  return html`<div className="pb"><div className="note">${'Re-runs the selected regimen under alternative assumptions. Other inputs stay as set on the left; the formula is '+FORMS[f.id].name+' at '+SITES.find(x=>x[0]===site)[1]+'. Each row is a separate simulation of '+Math.min(inp.n,800)+' virtual patients.'}</div>
+    <div style=${{margin:'8px 0'}}><button className="btn" disabled=${busy} onClick=${run}>${busy?'Running...':'Run sensitivity analysis'}</button></div>
+    ${rows?html`<table className="tbl"><thead><tr><th>Assumption</th><th>Scenario</th><th>Joint attainment (95% CI)</th><th>Change</th><th>Meropenem</th><th>Sulbactam</th><th>Colistin</th><th>Lightest regimen reaching target, within safety limits</th></tr></thead><tbody>${rows.map((r,i)=>r.err?html`<tr key=${i}><td>${r.g}</td><td>${r.lab}</td><td colSpan=${6}>not available</td></tr>`:html`<tr key=${i} className=${i%2?'alt':''}><td>${r.g}</td><td>${r.lab}</td><td><span className=${'pill '+cls(r.j)}>${pct(r.j)}</span> <span className="note">${pct(r.lo)+' to '+pct(r.hi)}</span></td><td>${i===0||base==null?'':((r.j-base)>=0?'+':'')+((r.j-base)*100).toFixed(1)+' points'}</td><td>${r.pM==null?'-':pct(r.pM)}</td><td>${r.pS==null?'-':pct(r.pS)}</td><td>${r.pC==null?'-':pct(r.pC)}</td><td>${r.best?regLabel(r.best):'none within safety limits'}</td></tr>`)}</tbody></table>
+      <div className="note" style=${{marginTop:8}}>Reading the table: a drug that does not appear in the formula shows a dash. A single colistin change usually leaves plasma unchanged but alters tissue and lung results; the combined pessimistic setting (D) is the one that lowers plasma attainment. Meropenem penetration affects only lung and CSF.</div>
+      <div style=${{marginTop:8}}><textarea readOnly rows=${4} style=${{width:'100%',fontFamily:'monospace',fontSize:12}} value=${csv()}></textarea></div>`:null}</div>`;}
+
 function SummaryPanel(p){const res=p.res,s=res.sel,inp=res.inp,f=res.F;
   const vd=verdictOf(s,res.inp);const k=f.m+f.s+f.c;
   const rows=[];
@@ -488,7 +514,7 @@ function SummaryPanel(p){const res=p.res,s=res.sel,inp=res.inp,f=res.F;
   return html`<${Panel} title="Results summary" right=${html`<span className="fchip"><${FormIcon} id=${res.form} size=${24}/></span>`}>
     <table className="kv"><tbody>
       <tr><td>Formula</td><td><b>${f.name}</b></td></tr>
-      <tr className="alt"><td>Status</td><td><span className=${'pill '+vd[0]}>${vd[0]==='ok'?'Attained and safe':vd[0]==='warn'?'Review':'Not attained'}</span></td></tr>
+      <tr className="alt"><td>Status</td><td><span className=${'pill '+vd[0]}>${vd[0]==='ok'?'Attained, within safety limits':vd[0]==='warn'?'Review':'Not attained'}</span></td></tr>
       <tr><td>${'Joint probability ('+(k===3?'all three':'both')+' drugs)'}</td><td><b>${pct(s.joint)}</b> <span className="note">${'95% CI '+pct(s.jlo)+'–'+pct(s.jhi)}</span><div className="bar"><i className=${cls(s.joint)} style=${{width:pct(s.joint)}}></i></div></td></tr>
       ${rows.map((r,i)=>html`<tr key=${r[0]} className=${i%2?'':'alt'}><td><span className="dl"><${DrugIcon} name=${r[0]} size=${18}/>${r[1]}</span></td><td>${pct(r[2])}<div className="bar"><i className=${cls(r[2])} style=${{width:pct(r[2])}}></i></div></td></tr>`)}
     </tbody></table></${Panel}>`;}
@@ -521,7 +547,7 @@ function DosePanel(p){const res=p.res,crcl=res.inp.crcl,f=res.F;const best=res.s
   return html`<${Panel} title="Dose finder" right=${html`<span className="tiny">${res.combos.length+' combinations searched ('+f.short+')'}</span>`}>
     <div className="note">${'Lightest regimen reaching at least '+pct(res.target)+' joint attainment within the safety limits ('+lim.join('; ')+'). Dose index = meropenem g/day ÷ 6 + sulbactam g/day ÷ 9 + CMS MU/day ÷ 9, for the drugs in the formula.'}</div>
     ${best?html`<div className="banner ok" style=${{marginTop:8}}><div><div className="t">Lightest regimen that attains the target</div><div className="s">${regLine(best,crcl,f)+' ('+pct(best.joint)+')'}</div></div><div className="ch"><button className="sm primary" onClick=${()=>p.apply(best)}>Apply</button></div></div>`
-      :html`<div className="banner bad" style=${{marginTop:8}}><div><div className="t">${'No safe combination reaches '+pct(res.target)+' at this site'}</div><div className="s">${res.bestAny.length?'Best achievable: '+pct(res.bestAny[0].joint)+' with '+regLine(res.bestAny[0],crcl,f):'No regimen is within the safety limits.'}</div></div></div>`}
+      :html`<div className="banner bad" style=${{marginTop:8}}><div><div className="t">${'No regimen within the safety limits reaches '+pct(res.target)+' at this site'}</div><div className="s">${res.bestAny.length?'Best achievable: '+pct(res.bestAny[0].joint)+' with '+regLine(res.bestAny[0],crcl,f):'No regimen is within the safety limits.'}</div></div></div>`}
     <div className="scroll"><table><thead><tr><th>#</th>${f.m?html`<th>Meropenem</th>`:null}${f.s?html`<th>Sulbactam</th>`:null}${f.c?html`<th>CMS (MU/day)</th>`:null}<th>Joint</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></${Panel}>`;}
 
 function LogPanel(p){const log=p.log;
@@ -575,7 +601,8 @@ function LeftPanels(p){const inp=p.inp,set=p.set,res=p.res;
     <${Field} label="Meropenem target"><${Sel} num=${true} value=${inp.tgtM} onChange=${x=>set('tgtM',x)} options=${[[0.4,'At least 40% of the interval above c'],[1,'100% of the interval above c']]}/><//>
     <${Field} label="Sulbactam ELF/plasma ratio (median)" hint="Published ELF PTAs are lower than this model; see the Model validation tab."><${Sel} num=${true} value=${inp.sulElfR} onChange=${x=>set('sulElfR',x)} options=${[[0.5,'0.5 (healthy volunteers, PMID 30126953)'],[0.3,'0.3 (reproduces published PTA at MIC 16, PMID 39712636)']]}/><//>
     <${Field} label="Sulbactam penetration into CSF"><${Sel} num=${true} value=${inp.sulCsf} onChange=${x=>set('sulCsf',x)} options=${[[0.5,'0.5 (inflamed meninges)'],[0.15,'0.15 (low)']]}/><//>
-    <div className="row2"><${Field} label="Colistin ELF/plasma ratio (IV)"><${Sel} num=${true} value=${inp.colElfR} onChange=${x=>set('colElfR',x)} options=${[[0.05,'0.05'],[0.10,'0.10'],[0.26,'0.26']]}/><//>
+    <${Field} label="Meropenem lung and CSF penetration" hint="Base: lung 0.27 and CSF 0.09 of total plasma; see the Sensitivity tab."><${Sel} num=${true} value=${inp.mElfK} onChange=${x=>{set('mElfK',x);set('mCsfK',x===1?1:(x<1?0.556:1.778));}} options=${[[0.556,'Low (lung 0.15, CSF 0.05)'],[1,'Base (lung 0.27, CSF 0.09)'],[1.481,'High (lung 0.40, CSF 0.16)']]}/><//>
+    <div className="row2"><${Field} label="Colistin lung ratio (relative to free plasma)"><${Sel} num=${true} value=${inp.colElfR} onChange=${x=>set('colElfR',x)} options=${[[0.26,'0.26 (pigs)'],[0.52,'0.52 (twice, sensitivity)']]}/><//>
       <${Field} label="Virtual patients"><${Sel} num=${true} value=${inp.n} onChange=${x=>set('n',x)} options=${[[500,'500'],[1000,'1,000'],[2000,'2,000']]}/><//></div>
     <div className="row3"><${Field} label="Attainment target"><${Sel} num=${true} value=${inp.target} onChange=${x=>set('target',x)} options=${[[0.8,'80%'],[0.9,'90%'],[0.95,'95%']]}/><//>
       <${Field} label="Meropenem trough limit"><${Sel} num=${true} value=${inp.limM} onChange=${x=>set('limM',x)} options=${[[0.1,'10%'],[0.2,'20%'],[0.3,'30%']]}/><//>
@@ -697,8 +724,8 @@ function App(){
       <div className="workspace">
         <${LeftPanels} inp=${inp} set=${set} res=${res}/>
         <div className=${busy?'spin':''}>
-          <section className="panel"><div className="tabs" role="tablist"><button role="tab" aria-selected=${tab==='profiles'} className=${tab==='profiles'?'on':''} onClick=${()=>setTab('profiles')}>Concentration-time profiles</button><button role="tab" aria-selected=${tab==='cmp'} className=${tab==='cmp'?'on':''} onClick=${()=>setTab('cmp')}>Compare formulas</button><button role="tab" aria-selected=${tab==='map'} className=${tab==='map'?'on':''} onClick=${()=>setTab('map')}>MIC attainment map</button><button role="tab" aria-selected=${tab==='val'} className=${tab==='val'?'on':''} onClick=${()=>setTab('val')}>Model validation</button></div>
-            ${!res?html`<div className="pb">Running simulation...</div>`:(tab==='profiles'?html`<${ProfilesTab} res=${res}/>`:tab==='cmp'?html`<${CompareTab} res=${res}/>`:tab==='map'?html`<${MapTab} res=${res} tab=${mapTab} setTab=${setMapTab}/>`:html`<${ValidationTab} key=${res.cScale+'-'+res.inp.sulElfR} cScale=${res.cScale} sulElfR=${res.inp.sulElfR}/>`)}</section>
+          <section className="panel"><div className="tabs" role="tablist"><button role="tab" aria-selected=${tab==='profiles'} className=${tab==='profiles'?'on':''} onClick=${()=>setTab('profiles')}>Concentration-time profiles</button><button role="tab" aria-selected=${tab==='cmp'} className=${tab==='cmp'?'on':''} onClick=${()=>setTab('cmp')}>Compare formulas</button><button role="tab" aria-selected=${tab==='map'} className=${tab==='map'?'on':''} onClick=${()=>setTab('map')}>MIC attainment map</button><button role="tab" aria-selected=${tab==='val'} className=${tab==='val'?'on':''} onClick=${()=>setTab('val')}>Model validation</button><button role="tab" aria-selected=${tab==='sens'} className=${tab==='sens'?'on':''} onClick=${()=>setTab('sens')}>Sensitivity analysis</button></div>
+            ${!res?html`<div className="pb">Running simulation...</div>`:(tab==='profiles'?html`<${ProfilesTab} res=${res}/>`:tab==='cmp'?html`<${CompareTab} res=${res}/>`:tab==='map'?html`<${MapTab} res=${res} tab=${mapTab} setTab=${setMapTab}/>`:tab==='sens'?html`<${SensTab} key=${JSON.stringify([res.inp.site,res.inp.form,res.inp.crcl,res.inp.mId,res.inp.sId,res.inp.kMU,res.inp.fuCol,res.inp.mult,res.inp.tgtM])} res=${res}/>`:html`<${ValidationTab} key=${res.cScale+'-'+res.inp.sulElfR} cScale=${res.cScale} sulElfR=${res.inp.sulElfR}/>`)}</section>
         </div>
         ${res?html`<div className=${'right '+(busy?'spin':'')}><${SummaryPanel} res=${res}/><${ConcPanel} res=${res}/><${SafetyPanel} res=${res}/></div>`:html`<div></div>`}
       </div>
@@ -712,7 +739,7 @@ function App(){
           <p>Limits: per-drug targets, not validated for any combination; static checkerboard concentrations; no CRRT, dialysis, paediatric or urine modelling; safety limits (meropenem trough 45 mg/L or above in 20% or fewer; colistin Css 4 mg/L or above in below 30%) are the simulator's choice. Results describe attainment of concentrations linked to in vitro synergy, not clinical efficacy.</p></details>
         <div className="credit"><${Img} name="lung" w=${22} h=${30} alt=""/><${Img} name="blood" w=${22} h=${30} alt=""/><${Img} name="kidney" w=${22} h=${30} alt=""/><${Img} name="bact" w=${26} h=${22} alt=""/>
           <span>Illustrations (lung, blood vessels, kidney): Servier Medical Art, CC BY 4.0 (smart.servier.com). Bacterium icon: Pauline Franz, Bioicons, CC0. Site icons for CSF and soft tissue, drug icons and the formula diagrams are drawn for this tool.</span></div>
-        <p>Research use only. Not for dosing individual patients. Version 1.0, November 2026.</p></footer></div>
+        <p>Research use only. Not for dosing individual patients. Version 1.1, November 2026.</p></footer></div>
     ${modal==='help'?html`<${Modal} title="Help" onClose=${()=>setModal(null)}><${HelpBody}/></${Modal}>`:null}
     ${modal==='export'&&res?html`<${Modal} title="Export results" onClose=${()=>setModal(null)}><div className="note">Select the text below and copy it into a spreadsheet (tab-separated).</div><textarea id="exp" readOnly value=${exportText(res)}></textarea><div style=${{marginTop:8,display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}><button className="primary" onClick=${copy}>Copy to clipboard</button>${dl?html`<button onClick=${()=>saveFile('crab_pkpd_results.csv',resultsCsv(res))}>Download results (CSV)</button>`:null}${dl&&log.length?html`<button onClick=${()=>saveFile('crab_pkpd_run_log.csv',logCsv(log))}>Download run log (CSV)</button>`:null}<span className="note">${dlMsg}</span></div></${Modal}>`:null}
   </div>`;

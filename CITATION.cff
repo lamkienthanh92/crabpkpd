@@ -4,10 +4,17 @@ title: "CRAB Combination PK/PD Simulator"
 version: 1.0.0
 date-released: 2026-11-13
 license: MIT
+doi: "10.5281/zenodo.24196427"
+repository-code: "https://github.com/lamkienthanh92/crabpkpd"
+url: "https://crabpkpd.netlify.app/"
 type: software
 authors:
+  - family-names: "Pham"
+    given-names: "Ngan Thi Tuong"
+  - family-names: "Huynh"
+    given-names: "Tuan Minh"
   - family-names: "Lam"
-    given-names: "Thanh"
+    given-names: "Thanh Kien"
     affiliation: "Faculty of Medical Technology, Van Lang University, Ho Chi Minh City, Vietnam"
     # orcid: "https://orcid.org/0000-0000-0000-0000"
 abstract: "Browser-based Monte Carlo simulator of the probability that colistin, meropenem and ampicillin/sulbactam (three pairs and the triple combination) reach their own target concentrations in the same virtual patient, using measured checkerboard concentrations from 39 carbapenem-resistant Acinetobacter baumannii isolates and published population pharmacokinetic models. Research use only."

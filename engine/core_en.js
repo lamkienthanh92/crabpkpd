@@ -81,11 +81,11 @@ function sulTarget(site){return site==='elf'?0.475:0.6;}
 function cssArr(P,mu,nominal){const a=new Float64Array(P.n),D=cmsEff(mu,nominal)*MG_PER_MU;for(let i=0;i<P.n;i++){const cr=P.crcl[i];a[i]=D/Math.pow(10,0.0048*cr+1.667)*P.eta[i];}return a;}
 function okCol(css,site,cc,o){const n=css.length;const out=new Uint8Array(n);
   for(let i=0;i<n;i++){let v;
-    if(site==='elf')v=o.rElf*css[i];else if(site==='csf')v=0.09*css[i];else if(site==='tissue')v=0.12*o.fu*css[i];else v=o.fu*css[i];
+    if(site==='elf')v=o.rElf*o.fu*css[i];else if(site==='csf')v=0.09*css[i];else if(site==='tissue')v=0.12*o.fu*css[i];else v=o.fu*css[i];
     out[i]=v>=(typeof cc==='number'?cc:cc[i])?1:0;}
   return out;}
 function colEff(css,site,o){const n=css.length,a=new Float64Array(n);
-  for(let i=0;i<n;i++){a[i]=site==='elf'?o.rElf*css[i]:site==='csf'?0.09*css[i]:site==='tissue'?0.12*o.fu*css[i]:o.fu*css[i];}return a;}
+  for(let i=0;i<n;i++){a[i]=site==='elf'?o.rElf*o.fu*css[i]:site==='csf'?0.09*css[i]:site==='tissue'?0.12*o.fu*css[i]:o.fu*css[i];}return a;}
 function wilson(k,n){const z=1.96,p=k/n,d=1+z*z/n,c=p+z*z/(2*n),h=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n));return[Math.max(0,(c-h)/d),Math.min(1,(c+h)/d)];}
 function mean(u,n){let s=0;for(let i=0;i<n;i++)s+=u[i];return s/n;}
 function ccFromMic(micC,mult){return Math.max(0.03125,0.125*micC)*mult;}
@@ -96,7 +96,7 @@ const FORMS={
  CS:{id:'CS',name:'Colistin + ampicillin/sulbactam',short:'Colistin + A/S',m:0,s:1,c:1,ccF:'CcA',caF:'AcC'},
  MS:{id:'MS',name:'Meropenem + ampicillin/sulbactam',short:'Meropenem + A/S',m:1,s:1,c:0,cmF:'MmA',caF:'AmM'}};
 const FORM_IDS=['T','CM','CS','MS'];
-const SYN={T:[39,39],CM:[31,39],CS:[5,39],MS:[3,39]};   // isolates with synergy / isolates tested
+const SYN={T:[31,39],CM:[31,39],CS:[5,39],MS:[3,39]};   // isolates with synergy / isolates tested
 // Predict combination concentrations from the three monotherapy MICs: kernel on the 39 isolates; meropenem keeps the observed fold reduction, colistin and ampicillin take the neighbour's measured value
 function sampleComb(fid,micM,micC,micA,n,rng){
   const F=FORMS[fid],N=DATA.length,lm=Math.log2(micM),lc=Math.log2(micC),la=Math.log2(micA);
@@ -123,6 +123,8 @@ function computeAll(inp){
   const cScale=inp.cScale||1,target=inp.target||0.9,limM=inp.limM!=null?inp.limM:0.2,limC=inp.limC!=null?inp.limC:0.3;
   const n=inp.n,P=makePatients(n,inp.crcl,inp.crclCv/100,inp.weight,20261112,inp.age||65,null,{height:inp.height||165,sex:inp.sex});
   if(inp.sulElfR&&inp.sulElfR!==0.5){const k=inp.sulElfR/0.5;for(let i=0;i<n;i++)P.rS_elf[i]*=k;}
+  if(inp.mElfK&&inp.mElfK!==1){for(let i=0;i<n;i++)P.rM_elf[i]*=inp.mElfK;}
+  if(inp.mCsfK&&inp.mCsfK!==1){for(let i=0;i<n;i++)P.rM_csf[i]*=inp.mCsfK;}
   const rng=makeRng(777),ones=new Uint8Array(n).fill(1);
   let cmA=null,ccA=null,caA=null,neff=null;
   if(inp.mode==='manual'){if(f.m)cmA=new Float64Array(n).fill(inp.cmManual);if(f.c)ccA=new Float64Array(n).fill(inp.ccManual);if(f.s)caA=new Float64Array(n).fill(inp.caManual||8);}
