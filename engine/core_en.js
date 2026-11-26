@@ -35,15 +35,17 @@ function makePatients(n,crcl,crclCv,wt,seed,age,pOld,opts){
   const P={n,crcl:new Float64Array(n),m_k10:new Float64Array(n),m_k12:new Float64Array(n),m_k21:new Float64Array(n),m_V1:new Float64Array(n),
     s_k10:new Float64Array(n),s_k12:new Float64Array(n),s_k21:new Float64Array(n),s_V1:new Float64Array(n),eta:new Float64Array(n),
     rM_elf:new Float64Array(n),rM_csf:new Float64Array(n),rM_tis:new Float64Array(n),rS_elf:new Float64Array(n),old:new Uint8Array(n)};
+  const rho=opts.rho||0,sq=Math.sqrt(rho),sr=Math.sqrt(1-rho); const mx=(z,z0)=>rho>0?sq*z0+sr*z:z;
   for(let i=0;i<n;i++){
+    const zc=rho>0?rng.n():0,zv=rho>0?rng.n():0;
     const cr=opts.range?(opts.range[0]+(opts.range[1]-opts.range[0])*rng.u()):Math.min(400,Math.max(5,crcl*lncv(rng,crclCv))); P.crcl[i]=cr;
-    P.m_V1[i]=0.239*effWt*Math.exp(0.52*rng.n()); P.m_k10[i]=(0.3922+0.0025*cr)*Math.exp(0.35*rng.n()); P.m_k12[i]=0.487*Math.exp(0.42*rng.n()); P.m_k21[i]=0.647*Math.exp(0.54*rng.n());
+    P.m_V1[i]=0.239*effWt*Math.exp(0.52*mx(rng.n(),zv)); P.m_k10[i]=(0.3922+0.0025*cr)*Math.exp(0.35*mx(rng.n(),zc)); P.m_k12[i]=0.487*Math.exp(0.42*rng.n()); P.m_k21[i]=0.647*Math.exp(0.54*rng.n());
     // Sulbactam: Jaruratanasirikul 2016 (PMID 27671056). CL depends on age group and CrCl; Vc 14.56 L, Vp 9.55 L, Q 11.5 L/h.
     const old=(pOld!=null&&pOld!==undefined)?(rng.u()<pOld):(age>65); P.old[i]=old?1:0;
-    const CLs=(old?Math.exp(0.54+0.28*cr/30):Math.exp(1.57+0.46*cr/83))*Math.exp(0.484*rng.n());
-    const V1s=14.56*Math.exp(0.52*rng.n()),Vp=9.55*Math.exp(0.531*rng.n()),Q=11.5*Math.exp(0.514*rng.n());
+    const CLs=(old?Math.exp(0.54+0.28*cr/30):Math.exp(1.57+0.46*cr/83))*Math.exp(0.484*mx(rng.n(),zc));
+    const V1s=14.56*Math.exp(0.52*mx(rng.n(),zv)),Vp=9.55*Math.exp(0.531*rng.n()),Q=11.5*Math.exp(0.514*rng.n());
     P.s_V1[i]=V1s; P.s_k10[i]=CLs/V1s; P.s_k12[i]=Q/V1s; P.s_k21[i]=Q/Vp;
-    P.eta[i]=Math.exp(0.415*rng.n());
+    P.eta[i]=Math.exp(0.415*mx(rng.n(),zc));
     P.rM_elf[i]=lnsig(rng,0.27,0.6); P.rM_csf[i]=lnsig(rng,0.09,0.65); P.rM_tis[i]=lnsig(rng,0.6,0.4); P.rS_elf[i]=lnsig(rng,0.5,0.4);
   }
   return P;
@@ -96,7 +98,7 @@ const FORMS={
  CS:{id:'CS',name:'Colistin + ampicillin/sulbactam',short:'Colistin + A/S',m:0,s:1,c:1,ccF:'CcA',caF:'AcC'},
  MS:{id:'MS',name:'Meropenem + ampicillin/sulbactam',short:'Meropenem + A/S',m:1,s:1,c:0,cmF:'MmA',caF:'AmM'}};
 const FORM_IDS=['T','CM','CS','MS'];
-const SYN={T:[31,39],CM:[31,39],CS:[5,39],MS:[3,39]};   // isolates with synergy / isolates tested
+const SYN={T:[39,39],CM:[31,39],CS:[5,39],MS:[3,39]};   // isolates with synergy / isolates tested
 // Predict combination concentrations from the three monotherapy MICs: kernel on the 39 isolates; meropenem keeps the observed fold reduction, colistin and ampicillin take the neighbour's measured value
 function sampleComb(fid,micM,micC,micA,n,rng){
   const F=FORMS[fid],N=DATA.length,lm=Math.log2(micM),lc=Math.log2(micC),la=Math.log2(micA);
@@ -123,8 +125,6 @@ function computeAll(inp){
   const cScale=inp.cScale||1,target=inp.target||0.9,limM=inp.limM!=null?inp.limM:0.2,limC=inp.limC!=null?inp.limC:0.3;
   const n=inp.n,P=makePatients(n,inp.crcl,inp.crclCv/100,inp.weight,20261112,inp.age||65,null,{height:inp.height||165,sex:inp.sex});
   if(inp.sulElfR&&inp.sulElfR!==0.5){const k=inp.sulElfR/0.5;for(let i=0;i<n;i++)P.rS_elf[i]*=k;}
-  if(inp.mElfK&&inp.mElfK!==1){for(let i=0;i<n;i++)P.rM_elf[i]*=inp.mElfK;}
-  if(inp.mCsfK&&inp.mCsfK!==1){for(let i=0;i<n;i++)P.rM_csf[i]*=inp.mCsfK;}
   const rng=makeRng(777),ones=new Uint8Array(n).fill(1);
   let cmA=null,ccA=null,caA=null,neff=null;
   if(inp.mode==='manual'){if(f.m)cmA=new Float64Array(n).fill(inp.cmManual);if(f.c)ccA=new Float64Array(n).fill(inp.ccManual);if(f.s)caA=new Float64Array(n).fill(inp.caManual||8);}

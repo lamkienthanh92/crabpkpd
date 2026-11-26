@@ -245,7 +245,7 @@ const FORMS={
  CS:{id:'CS',name:'Colistin + ampicillin/sulbactam',short:'Colistin + A/S',m:0,s:1,c:1,ccF:'CcA',caF:'AcC'},
  MS:{id:'MS',name:'Meropenem + ampicillin/sulbactam',short:'Meropenem + A/S',m:1,s:1,c:0,cmF:'MmA',caF:'AmM'}};
 const FORM_IDS=['T','CM','CS','MS'];
-const SYN={T:[31,39],CM:[31,39],CS:[5,39],MS:[3,39]};   // isolates with synergy / isolates tested
+const SYN={T:[31,39],CM:[30,39],CS:[5,39],MS:[3,39]};   // isolates with synergy / isolates tested
 // Predict combination concentrations from the three monotherapy MICs: kernel on the 39 isolates; meropenem keeps the observed fold reduction, colistin and ampicillin take the neighbour's measured value
 function sampleComb(fid,micM,micC,micA,n,rng){
   const F=FORMS[fid],N=DATA.length,lm=Math.log2(micM),lc=Math.log2(micC),la=Math.log2(micA);

@@ -2,7 +2,7 @@ const fs=require('fs');
 const core=fs.readFileSync('./core_en.js','utf8').replace('__DATA__',fs.readFileSync('./data_js.txt','utf8'));
 const C=new Function(core+';return {makePatients,simulate,meroReg,sulReg,okTime,ratioM,ratioS,sulTarget,cssArr,okCol,cmsEff,adjWeight,MERO,SUL,CMS,MERO_IDS,SUL_IDS,mean,minOf,makeRng,regText,NWIN};')();
 const ISO=JSON.parse(fs.readFileSync(process.env.ISO||'iso39.json','utf8')); const NI=ISO.length;
-const N=1500;
+const N=1500; const RHO=+(process.env.RHO||0);
 const STRATA=[['A: CrCl 130–180',130,180,155],['B: CrCl 90–129',90,129,110],['C: CrCl 51–89',51,89,70],['D: CrCl 30–50',30,50,40],['E: CrCl 10–29',10,29,20]];
 const SITES=['plasma','elf','csf','tissue'];
 const SCEN=(process.env.SCEN||'S0:0.49:1,S3:0.085:4').split(',').map(x=>{const q=x.split(':');return [q[0],+q[1],+q[2]];});
@@ -22,11 +22,11 @@ for(let si=0;si<STRATA.length;si++){
   const [sname,lo,hi,nom]=STRATA[si]; const seed=777+si*13;
   const rr=C.makeRng(seed+1); const effW=new Float64Array(N);
   for(let i=0;i<N;i++){let w=71+22*rr.n();w=Math.min(150,Math.max(35,w));const male=rr.u()<0.65;const h=165+8*rr.n();effW[i]=C.adjWeight(w,Math.min(200,Math.max(140,h)),male?'M':'F');}
-  const Pb=C.makePatients(N,nom,0,1,seed,null,0,{range:[lo,hi]}); for(let i=0;i<N;i++){Pb.m_V1[i]*=effW[i];Pb.rM_elf[i]*=ELF_K;Pb.rM_csf[i]*=CSF_K;}
+  const Pb=C.makePatients(N,nom,0,1,seed,null,0,{range:[lo,hi],rho:RHO}); for(let i=0;i<N;i++){Pb.m_V1[i]*=effW[i];Pb.rM_elf[i]*=ELF_K;Pb.rM_csf[i]*=CSF_K;}
   const serM={},toxM={}; for(const id of C.MERO_IDS){const reg=C.meroReg(id,nom);serM[id]=C.simulate(N,Pb.m_k10,Pb.m_k12,Pb.m_k21,Pb.m_V1,reg);toxM[id]=C.mean(C.minOf(serM[id],N).map(v=>v>=45?1:0),N);}
   const cacheM=new Map(); const okMf=(id,site,thr)=>{const k=id+'|'+site+'|'+thr;let v=cacheM.get(k);if(!v){v=C.okTime(serM[id],N,C.ratioM(Pb,site),thr,MERO_T);cacheM.set(k,v);}return v;};
   for(const ag of [0,1]){
-    const P=C.makePatients(N,nom,0,1,seed,null,ag,{range:[lo,hi]}); for(let i=0;i<N;i++){P.m_V1[i]*=effW[i];P.rM_elf[i]*=ELF_K;P.rM_csf[i]*=CSF_K;}
+    const P=C.makePatients(N,nom,0,1,seed,null,ag,{range:[lo,hi],rho:RHO}); for(let i=0;i<N;i++){P.m_V1[i]*=effW[i];P.rM_elf[i]*=ELF_K;P.rM_csf[i]*=CSF_K;}
     const serS={}; for(const id of C.SUL_IDS){serS[id]=C.simulate(N,P.s_k10,P.s_k12,P.s_k21,P.s_V1,C.sulReg(id,nom));}
     const cacheS=new Map(); const okSf=(id,site,thr)=>{const k=id+'|'+site+'|'+thr;let v=cacheS.get(k);if(!v){v=C.okTime(serS[id],N,C.ratioS(P,site,0.5),thr,C.sulTarget(site));cacheS.set(k,v);}return v;};
     const cssA={},toxC={}; for(const mu of C.CMS){let css=C.cssArr(P,mu,nom); if(IND_CMS){css=new Float64Array(N);for(let i=0;i<N;i++){css[i]=C.cmsEff(mu,P.crcl[i])*33/Math.pow(10,0.0048*P.crcl[i]+1.667)*P.eta[i];}} cssA[mu]=css;let k=0;for(let i=0;i<N;i++)if(css[i]>=4)k++;toxC[mu]=k/N;}

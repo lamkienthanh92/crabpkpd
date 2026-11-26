@@ -1,11 +1,10 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below and cite the related paper."
 title: "CRAB Combination PK/PD Simulator"
-version: 1.0.0
-date-released: 2026-11-13
+version: 1.1.0
+date-released: 2026-11-26
 license: MIT
 doi: "10.5281/zenodo.24196427"
-repository-code: "https://github.com/lamkienthanh92/crabpkpd"
 url: "https://crabpkpd.netlify.app/"
 type: software
 authors:
